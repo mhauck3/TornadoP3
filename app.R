@@ -1,5 +1,5 @@
-# Project 3
-#
+# Project 3 - You Spin Me Round
+# Group 5 - Megan, Pedro, Namaswi, Shoaib
 
 library(ggplot2)
 library(data.table)
@@ -10,22 +10,21 @@ library(DT)
 library(grid)
 library(rsconnect)
 library(scales)
-library(pROC)
-library(ROCR)
 library(shiny)
 library(shinydashboard)
 
-# setting the working directory
-setwd("~/Desktop/Tornadoes/Dataset")
-# 
-# data1 = fread("actualTornadoes.csv")
-# nrow(data1)
-data = fread("allTornadoes.csv")
-# nrow(data2)
-names(data)
-newNames = c("tornadoNumber", "year", "month", "day", "date", "time", "timeZone", "state", "fips", "stateNumber", "fscale","injuries", "fatalities", "loss", "cropLoss", "startLat", "startLon", "endLat", "endLon", "length", "width", "numberOfStates", "stateNumber2", "tornadoSegment","fips1st", "fips2nd", "fips3rd", "fips4th","fscale2")
+#Read data
+data = fread("Dataset/allTornadoes.csv")
+
+
+#Set names and datatype
+newNames = c("tornadoNumber", "year", "month", "day", "date", "time", "timeZone", "state", "fips", 
+             "stateNumber", "fscale","injuries", "fatalities", "loss", "cropLoss", "startLat", 
+             "startLon", "endLat", "endLon", "length", "width", "numberOfStates", "stateNumber2", 
+             "tornadoSegment","fips1st", "fips2nd", "fips3rd", "fips4th","fscale2")
 setnames(data, newNames)
-data
+data$date = as.Date(data$date)
+data$tz = as.factor(data$tz)
 
 # C1
 tornadoesByYear = data %>%
