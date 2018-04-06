@@ -4,3 +4,5 @@
 \.Rhistory
 
 *.csv
+
+*.csv#

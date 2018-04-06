@@ -12,6 +12,7 @@ library(rsconnect)
 library(scales)
 library(shiny)
 library(shinydashboard)
+library(leaflet)
 
 #Read data
 data = fread("Dataset/allTornadoes.csv")
@@ -34,8 +35,12 @@ newNames = c("tornadoNumber", "year", "month", "day", "date", "time", "timeZone"
 setnames(data, newNames)
 data$date = as.Date(data$date)
 factor_list = c("tornadoNumber", "year", "month", "day", "timeZone", "state", "fips", 
-               "stateNumber", "fscale","fips1st", "fips2nd", "fips3rd", "fips4th","fscale2")
+                "stateNumber", "fscale","fips1st", "fips2nd", "fips3rd", "fips4th","fscale2")
 data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
+
+#Create tornado ID (unique to the state single track, NOT unique as a key)
+data[, tornadoID := paste(year,tornadoNumber, sep = "")]
+data[, tornadoID := factor(tornadoID)]
 
 # C1
 tornadoesByYear = data %>%
@@ -97,5 +102,28 @@ damagesByYear = data %>%
 ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + geom_bar(stat = "identity")
 
 ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + geom_bar(stat = "identity")
+
+# C9
+
+#Function maps tornados by year. Excludes missing coordinates
+map_track_state_year = function(year_var, state_var){
+  track_state_start = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
+                             endLat > 0 & endLon <0, c("tornadoID", "startLon", "startLat")]
+  track_state_end = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
+                         endLat > 0 & endLon <0, c("tornadoID", "endLat","endLon")]
+  setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
+  setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
+  track_state = rbind(track_state_start,track_state_end)
+  
+  m = leaflet() %>% addProviderTiles(providers$CartoDB.Positron)
+  for (i in unique(track_state$tornadoID)) {
+    print(i)
+    m <- m %>%
+      addPolylines(data = track_state[tornadoID == i],
+                   lng = ~lon,
+                   lat = ~lat)
+  }
+  return(m)
+}
 
 #ggplot(damagesByYear, aes(x = factor(year), y = damagesLoss)) + geom_bar(stat = "identity")
