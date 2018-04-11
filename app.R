@@ -13,6 +13,7 @@ library(scales)
 library(shiny)
 library(shinydashboard)
 library(leaflet)
+library(geosphere)
 
 #Read data
 data = fread("Dataset/allTornadoes.csv")
@@ -41,6 +42,14 @@ data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
 #Create tornado ID (unique to the state single track, NOT unique as a key)
 data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
+
+# Define new column
+#data = data %>%
+#  mutate(distance = distm(c(startLon, startLat),c(endLon, endLat), fun = distHaversine)) %>%
+#  data.table()
+
+#data[,distance:= distm(as.numeric(c(startLon, startLat)),as.numeric(c(endLon, endLat)), fun = distHaversine)]
+#distm(c(1, 1),c(2, 2), fun = distHaversine)
 
 # C1
 tornadoesByYear = data %>%
@@ -103,6 +112,46 @@ ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + geom_bar(stat = "ide
 
 ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + geom_bar(stat = "identity")
 
+# C6
+damagesByMonth = data %>%
+  group_by(month) %>%
+  summarize(damagesInjuries = sum(injuries),
+            damagesFatalities = sum(fatalities),
+            damagesLoss = sum(loss)) %>%
+  data.table()
+
+ggplot(damagesByMonth, aes(x = factor(month), y = damagesInjuries)) + geom_bar(stat = "identity")
+
+ggplot(damagesByMonth, aes(x = factor(month), y = damagesFatalities)) + geom_bar(stat = "identity")
+
+ggplot(damagesByMonth, aes(x = factor(month), y = damagesLoss)) + geom_bar(stat = "identity")
+
+# C7
+
+damagesByHour = data %>%
+  mutate(hour = substr(time,1,2)) %>%
+  group_by(hour) %>%
+  summarize(damagesInjuries = sum(injuries),
+            damagesFatalities = sum(fatalities),
+            damagesLoss = sum(loss)) %>%
+  data.table()
+
+ggplot(damagesByHour, aes(x = factor(hour), y = damagesInjuries)) + geom_bar(stat = "identity")
+
+ggplot(damagesByHour, aes(x = factor(hour), y = damagesFatalities)) + geom_bar(stat = "identity")
+
+ggplot(damagesByHour, aes(x = factor(hour), y = damagesLoss)) + geom_bar(stat = "identity")
+
+# C8
+
+tornadoCountByCounty = data %>%
+  group_by(fips) %>%
+  summarize(tornadoCount = n()) %>%
+  arrange(-tornadoCount) %>% 
+  mutate(fips = as.factor(fips)) %>%
+  data.table()
+
+ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
 # C9
 
 #Function maps tornados by year. Excludes missing coordinates
@@ -125,5 +174,7 @@ map_track_state_year = function(year_var, state_var){
   }
   return(m)
 }
+
+#map_track_state_year(year_var = 2013, state_var = "MO")
 
 #ggplot(damagesByYear, aes(x = factor(year), y = damagesLoss)) + geom_bar(stat = "identity")
