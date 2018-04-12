@@ -43,6 +43,24 @@ data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
 data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
+newData = data %>%
+  mutate(rad = pi/180,
+         a1 = startLat * rad,
+         a2 = startLon * rad,
+         b1 = endLat * rad,
+         b2 = endLon * rad,
+         dlon = b2 - a2,
+         dlat = b1 - a1,
+         a = (sin(dlat/2))^2 + cos(a1) * cos(b1) * (sin(dlon/2))^2,
+         c = 2 * atan2(sqrt(a), sqrt(1 - a)),
+         R = 6378.145,
+         distance = R * c) %>%
+  select(-rad,-a1,-a2,-b1,-b2,-dlon,-dlat,-a,-c,-R) %>%
+  mutate(distance = ifelse(endLat ==0 & endLon == 0, 0, distance)) %>% #making distance = 0 when both end lat and end lon are not available(ie. end lat = end long = 0)
+  data.table()
+
+newData
+
 # Define new column
 #data = data %>%
 #  mutate(distance = distm(c(startLon, startLat),c(endLon, endLat), fun = distHaversine)) %>%
@@ -148,10 +166,13 @@ tornadoCountByCounty = data %>%
   group_by(fips) %>%
   summarize(tornadoCount = n()) %>%
   arrange(-tornadoCount) %>% 
-  mutate(fips = as.factor(fips)) %>%
+# mutate(fips = as.factor(fips)) %>%
   data.table()
 
-ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
+#ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
+
+ggplot(tornadoesByCounty, aes(x = reorder(fips, -tornadoCount), y = tornadoCount)) + geom_bar(stat = "identity")
+
 # C9
 
 #Function maps tornados by year. Excludes missing coordinates
