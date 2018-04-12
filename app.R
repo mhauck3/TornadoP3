@@ -45,7 +45,7 @@ data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
 data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
-newData = data %>%
+data = data %>%
   mutate(rad = pi/180,
          a1 = startLat * rad,
          a2 = startLon * rad,
