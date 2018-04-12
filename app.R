@@ -1,6 +1,8 @@
-# Project 3 - You Spin Me Round
-# Group 5 - Megan, Pedro, Namaswi, Shoaib
-
+#install.packages("shinythemes")
+library(shinythemes)
+library(shiny)
+library(shinydashboard)
+library(markdown)
 library(ggplot2)
 library(data.table)
 library(dplyr)
@@ -10,10 +12,10 @@ library(DT)
 library(grid)
 library(rsconnect)
 library(scales)
-library(shiny)
-library(shinydashboard)
 library(leaflet)
 library(geosphere)
+
+
 
 #Read data
 data = fread("Dataset/allTornadoes.csv")
@@ -59,8 +61,6 @@ newData = data %>%
   mutate(distance = ifelse(endLat ==0 & endLon == 0, 0, distance)) %>% #making distance = 0 when both end lat and end lon are not available(ie. end lat = end long = 0)
   data.table()
 
-newData
-
 # Define new column
 #data = data %>%
 #  mutate(distance = distm(c(startLon, startLat),c(endLon, endLat), fun = distHaversine)) %>%
@@ -69,133 +69,200 @@ newData
 #data[,distance:= distm(as.numeric(c(startLon, startLat)),as.numeric(c(endLon, endLat)), fun = distHaversine)]
 #distm(c(1, 1),c(2, 2), fun = distHaversine)
 
-# C1
-tornadoesByYear = data %>%
-  group_by(year, fscale) %>%
-  summarize(tornadoCount = n()) %>%
-  group_by(year) %>%
-  mutate(annualTornadoCount = sum(tornadoCount)) %>%
-  mutate(percTornadoByFscale = tornadoCount/annualTornadoCount) %>%
-  data.table()
-
-tornadoesOverall = nrow(data)
-# nrow(data)
-# ncol(data)
-# dim(data)[1]
-# dim(data)[2]
-
-data %>%
-  group_by(fscale) %>%
-  summarize(totalCount = n())
-
-ggplot(tornadoesByYear, aes(x = year, y = tornadoCount, color = fscale)) + geom_bar(stat = "identity", position = 'dodge')
-
-ggplot(tornadoesByYear, aes(x = year, y = percTornadoByFscale, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position = 'dodge') #sans identity, we get row count -- yikes!
-
-# C2
-tornadoesByMonth = data %>%
-  group_by(month, fscale) %>%
-  summarize(tornadoCount = n()) %>%
-  group_by(month) %>%
-  mutate(monthlyTornadoCount = sum(tornadoCount)) %>%
-  mutate(percTornadoByFscale = tornadoCount/monthlyTornadoCount) %>%
-  data.table()
-
-ggplot(tornadoesByMonth, aes(x = month, y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
-
-# C3 
-tornadoesByHour = data %>%
-  mutate(hour = as.numeric(substr(time,start = 1, stop = 2))) %>%
-  group_by(hour, fscale) %>%
-  summarize(tornadoCount = n()) %>%
-  group_by(hour) %>%
-  mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
-  mutate(percTornadoByFscale = tornadoCount/hourlyTornadoCount) %>%
-  data.table()
-
-ggplot(tornadoesByHour, aes(x = factor(hour), y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
-
-# C4
-# woohoo! It's underway. Add two columns using mutate: startLatLon and endLatLon <-- to calculate distance from Chicago; based on the range, eg. 0-100 km, filter out tornadoes in that range and THEN group it
-
-# C5
-damagesByYear = data %>%
-  group_by(year) %>%
-  summarize(damagesInjuries = sum(injuries),
-            damagesFatalities = sum(fatalities),
-            damagesLoss = sum(loss)) %>%
-  data.table()
-
-ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + geom_bar(stat = "identity")
-
-ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + geom_bar(stat = "identity")
-
-# C6
-damagesByMonth = data %>%
-  group_by(month) %>%
-  summarize(damagesInjuries = sum(injuries),
-            damagesFatalities = sum(fatalities),
-            damagesLoss = sum(loss)) %>%
-  data.table()
-
-ggplot(damagesByMonth, aes(x = factor(month), y = damagesInjuries)) + geom_bar(stat = "identity")
-
-ggplot(damagesByMonth, aes(x = factor(month), y = damagesFatalities)) + geom_bar(stat = "identity")
-
-ggplot(damagesByMonth, aes(x = factor(month), y = damagesLoss)) + geom_bar(stat = "identity")
-
-# C7
-
-damagesByHour = data %>%
-  mutate(hour = substr(time,1,2)) %>%
-  group_by(hour) %>%
-  summarize(damagesInjuries = sum(injuries),
-            damagesFatalities = sum(fatalities),
-            damagesLoss = sum(loss)) %>%
-  data.table()
-
-ggplot(damagesByHour, aes(x = factor(hour), y = damagesInjuries)) + geom_bar(stat = "identity")
-
-ggplot(damagesByHour, aes(x = factor(hour), y = damagesFatalities)) + geom_bar(stat = "identity")
-
-ggplot(damagesByHour, aes(x = factor(hour), y = damagesLoss)) + geom_bar(stat = "identity")
-
-# C8
-
-tornadoCountByCounty = data %>%
-  group_by(fips) %>%
-  summarize(tornadoCount = n()) %>%
-  arrange(-tornadoCount) %>% 
-# mutate(fips = as.factor(fips)) %>%
-  data.table()
-
-#ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
-
-ggplot(tornadoesByCounty, aes(x = reorder(fips, -tornadoCount), y = tornadoCount)) + geom_bar(stat = "identity")
-
-# C9
-
-#Function maps tornados by year. Excludes missing coordinates
-map_track_state_year = function(year_var, state_var){
-  track_state_start = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
-                             endLat > 0 & endLon <0, c("tornadoID", "startLon", "startLat")]
-  track_state_end = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
-                         endLat > 0 & endLon <0, c("tornadoID", "endLat","endLon")]
-  setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
-  setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
-  track_state = rbind(track_state_start,track_state_end)
-  
-  m = leaflet() %>% addProviderTiles(providers$CartoDB.Positron)
-  for (i in unique(track_state$tornadoID)) {
-    print(i)
-    m <- m %>%
-      addPolylines(data = track_state[tornadoID == i],
-                   lng = ~lon,
-                   lat = ~lat)
+shinyApp(
+  ui = fluidPage(
+    theme = shinytheme("superhero"),
+    
+    tabPanel("Something",
+             sidebarLayout(
+               sidebarPanel(width = 2, h2("Preferences"),
+                            
+                            radioButtons("hr", h3("Hour:"),
+                                         choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
+                            
+                            radioButtons("units", h3("Units:"),
+                                         choices = list("Imperical" = 1, "Metric" = 2),selected = 1),
+                            h2("Filters"),
+                            sliderInput("width_input",label=h3("Width:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            sliderInput("length_input",label=h3("Length:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            sliderInput("injuries_input",label=h3("Injuries:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            sliderInput("fatalities_input",label=h3("Fatalities:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            sliderInput("loss_input",label=h3("Loss"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            tags$style(HTML(".irs-grid-text { font-size: 0pt; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
+                            tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
+                            tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
+                            tags$style(HTML(".js-irs-3 .irs-single, .js-irs-3 .irs-bar-edge, .js-irs-3 .irs-bar {background: red}")),
+                            tags$style(HTML(".js-irs-4 .irs-single, .js-irs-4 .irs-bar-edge, .js-irs-4 .irs-bar {background: red}")),
+                            HTML("<div class=card text-white bg-primary mb-3 style=max-width: 20rem;><div class=card-header>Header</div><div class=card-body><h4 class=card-title>About</h4>
+         <p class=card-text>Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+         </div></div>")),
+               
+               mainPanel(
+                 
+                 
+                 fluidRow(
+                   
+                   column(9,
+                          
+                          "Sliders",
+                          
+                          sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = c(1950, 2016),animate = TRUE,width="100%",step=1),
+                          
+                          tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red}")),
+                          tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
+                          #sliderInput("Month_input", "Month:"),
+                          #tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
+                          #sliderInput("Day_input", "Day:"),
+                          #tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
+                          #sliderInput("Hour_input", "Hour:", 0, 24, 0),
+                          fixedRow(
+                            column(8,
+                                   "Map"
+                            ),
+                            column(4,
+                                   "Table"
+                            )
+                          )
+                          
+                   ),
+                   column(2,
+                          "Column 2",
+                          fluidRow("Heat Map"),
+                          fluidRow("10 destructive Tornadoes")
+                   )
+                 )
+               )
+             )),
+    tabPanel("Summary",
+             verbatimTextOutput("summary")
+    )
+  ),
+  server = function(input, output) {
+    # C1
+    tornadoesByYear = data %>%
+      group_by(year, fscale) %>%
+      summarize(tornadoCount = n()) %>%
+      group_by(year) %>%
+      mutate(annualTornadoCount = sum(tornadoCount)) %>%
+      mutate(percTornadoByFscale = tornadoCount/annualTornadoCount) %>%
+      data.table()
+    
+    tornadoesOverall = nrow(data)
+    # nrow(data)
+    # ncol(data)
+    # dim(data)[1]
+    # dim(data)[2]
+    
+    data %>%
+      group_by(fscale) %>%
+      summarize(totalCount = n())
+    
+    ggplot(tornadoesByYear, aes(x = year, y = tornadoCount, color = fscale)) + geom_bar(stat = "identity", position = 'dodge')
+    
+    ggplot(tornadoesByYear, aes(x = year, y = percTornadoByFscale, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position = 'dodge') #sans identity, we get row count -- yikes!
+    
+    # C2
+    tornadoesByMonth = data %>%
+      group_by(month, fscale) %>%
+      summarize(tornadoCount = n()) %>%
+      group_by(month) %>%
+      mutate(monthlyTornadoCount = sum(tornadoCount)) %>%
+      mutate(percTornadoByFscale = tornadoCount/monthlyTornadoCount) %>%
+      data.table()
+    
+    ggplot(tornadoesByMonth, aes(x = month, y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
+    
+    # C3 
+    tornadoesByHour = data %>%
+      mutate(hour = as.numeric(substr(time,start = 1, stop = 2))) %>%
+      group_by(hour, fscale) %>%
+      summarize(tornadoCount = n()) %>%
+      group_by(hour) %>%
+      mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+      mutate(percTornadoByFscale = tornadoCount/hourlyTornadoCount) %>%
+      data.table()
+    
+    ggplot(tornadoesByHour, aes(x = factor(hour), y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
+    
+    # C4
+    # woohoo! It's underway. Add two columns using mutate: startLatLon and endLatLon <-- to calculate distance from Chicago; based on the range, eg. 0-100 km, filter out tornadoes in that range and THEN group it
+    
+    # C5
+    damagesByYear = data %>%
+      group_by(year) %>%
+      summarize(damagesInjuries = sum(injuries),
+                damagesFatalities = sum(fatalities),
+                damagesLoss = sum(loss)) %>%
+      data.table()
+    
+    ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + geom_bar(stat = "identity")
+    
+    ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + geom_bar(stat = "identity")
+    
+    # C6
+    damagesByMonth = data %>%
+      group_by(month) %>%
+      summarize(damagesInjuries = sum(injuries),
+                damagesFatalities = sum(fatalities),
+                damagesLoss = sum(loss)) %>%
+      data.table()
+    
+    ggplot(damagesByMonth, aes(x = factor(month), y = damagesInjuries)) + geom_bar(stat = "identity")
+    
+    ggplot(damagesByMonth, aes(x = factor(month), y = damagesFatalities)) + geom_bar(stat = "identity")
+    
+    ggplot(damagesByMonth, aes(x = factor(month), y = damagesLoss)) + geom_bar(stat = "identity")
+    
+    # C7
+    
+    damagesByHour = data %>%
+      mutate(hour = substr(time,1,2)) %>%
+      group_by(hour) %>%
+      summarize(damagesInjuries = sum(injuries),
+                damagesFatalities = sum(fatalities),
+                damagesLoss = sum(loss)) %>%
+      data.table()
+    
+    ggplot(damagesByHour, aes(x = factor(hour), y = damagesInjuries)) + geom_bar(stat = "identity")
+    
+    ggplot(damagesByHour, aes(x = factor(hour), y = damagesFatalities)) + geom_bar(stat = "identity")
+    
+    ggplot(damagesByHour, aes(x = factor(hour), y = damagesLoss)) + geom_bar(stat = "identity")
+    
+    # C8
+    
+    tornadoesByCounty = data %>%
+      group_by(fips) %>%
+      summarize(tornadoCount = n()) %>%
+      arrange(-tornadoCount) %>% 
+      # mutate(fips = as.factor(fips)) %>%
+      data.table()
+    
+    #ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
+    
+    ggplot(tornadoesByCounty, aes(x = reorder(fips, -tornadoCount), y = tornadoCount)) + geom_bar(stat = "identity")
+    
+    # C9
+    
+    #Function maps tornados by year. Excludes missing coordinates
+    map_track_state_year = function(year_var, state_var){
+      track_state_start = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
+                                 endLat > 0 & endLon <0, c("tornadoID", "startLon", "startLat")]
+      track_state_end = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
+                               endLat > 0 & endLon <0, c("tornadoID", "endLat","endLon")]
+      setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
+      setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
+      track_state = rbind(track_state_start,track_state_end)
+      
+      m = leaflet() %>% addProviderTiles(providers$CartoDB.Positron)
+      for (i in unique(track_state$tornadoID)) {
+        print(i)
+        m <- m %>%
+          addPolylines(data = track_state[tornadoID == i],
+                       lng = ~lon,
+                       lat = ~lat)
+      }
+      return(m)
+    }
   }
-  return(m)
-}
-
-#map_track_state_year(year_var = 2013, state_var = "MO")
-
-#ggplot(damagesByYear, aes(x = factor(year), y = damagesLoss)) + geom_bar(stat = "identity")
+)
