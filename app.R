@@ -45,7 +45,7 @@ data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
 data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
-newData = data %>%
+data = data %>%
   mutate(rad = pi/180,
          a1 = startLat * rad,
          a2 = startLon * rad,
@@ -106,7 +106,7 @@ shinyApp(
                           
                           "Sliders",
                           
-                          sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = c(1950, 2016),animate = TRUE,width="100%",step=1),
+                          sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
                           
                           tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red}")),
                           tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
@@ -117,6 +117,7 @@ shinyApp(
                           #sliderInput("Hour_input", "Hour:", 0, 24, 0),
                           fixedRow(
                             column(8,
+                                   leafletOutput("map_track"),
                                    "Map"
                             ),
                             column(4,
@@ -243,26 +244,31 @@ shinyApp(
     ggplot(tornadoesByCounty, aes(x = reorder(fips, -tornadoCount), y = tornadoCount)) + geom_bar(stat = "identity")
     
     # C9
-    
     #Function maps tornados by year. Excludes missing coordinates
-    map_track_state_year = function(year_var, state_var){
-      track_state_start = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
-                                 endLat > 0 & endLon <0, c("tornadoID", "startLon", "startLat")]
-      track_state_end = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
-                               endLat > 0 & endLon <0, c("tornadoID", "endLat","endLon")]
-      setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
-      setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
-      track_state = rbind(track_state_start,track_state_end)
-      
-      m = leaflet() %>% addProviderTiles(providers$CartoDB.Positron)
-      for (i in unique(track_state$tornadoID)) {
-        print(i)
-        m <- m %>%
-          addPolylines(data = track_state[tornadoID == i],
-                       lng = ~lon,
-                       lat = ~lat)
-      }
-      return(m)
+    output$map_track = renderLeaflet({
+      map_track_state_year = function(year_var, state_var){
+        track_state_start = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
+                                   endLat > 0 & endLon <0, c("tornadoID", "startLon", "startLat")]
+        track_state_end = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
+                                 endLat > 0 & endLon <0, c("tornadoID", "endLat","endLon")]
+        setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
+        setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
+        track_state = rbind(track_state_start,track_state_end)
+        
+        m = leaflet() %>% 
+          addProviderTiles(providers$CartoDB.Positron) %>%
+          setView(-87.987437, 41.913741, zoom = 5)
+        for (i in unique(track_state$tornadoID)) {
+          m <- m %>%
+            addPolylines(data = track_state[tornadoID == i],
+                         lng = ~lon,
+                         lat = ~lat)
+        }
+        return(m)
+      }      
+      map_track_state_year(input$year_input, "IL")
     }
+    )
+    
   }
 )
