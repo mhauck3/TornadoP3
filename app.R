@@ -186,7 +186,26 @@ shinyApp(
     ggplot(tornadoesByHour, aes(x = factor(hour), y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
     
     # C4
-    # woohoo! It's underway. Add two columns using mutate: startLatLon and endLatLon <-- to calculate distance from Chicago; based on the range, eg. 0-100 km, filter out tornadoes in that range and THEN group it
+    data = data %>% 
+      mutate(distChicagoStrt = getGeoDist(startlat = 41.8781, startlon = -87.6298,
+                                          endlat = startLat, endlon = startLon),
+             distChicagoEnd = getGeoDist(startlat = 41.8781, startlon = -87.6298,
+                                         endlat = endLat, endlon = endLon)) %>% 
+    data.table()
+
+    data$distChicago = apply(data[,.(distChicagoStrt, distChicagoEnd)], MARGIN = 1, FUN = min)
+
+    data = data %>%
+      mutate(distChicagoBin = ifelse(distChicago<100,"< 100 km", ifelse(distChicago<200,"100 - 200 km", ifelse(distChicago < 400, "200 - 400 km", "> 400 km")))) %>%
+    data.table()
+    
+    getBinInfo = function(distBin = c("< 100 km","100 - 200 km", "200 - 400 km","> 400 km")){
+      binData = data %>%
+      filter(distChicagoBin %in% distBin)
+      binData
+    }
+
+    binRecords = getBinInfo(distBin = "< 100 km")
     
     # C5
     damagesByYear = data %>%
