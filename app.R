@@ -29,6 +29,7 @@ data[yr < 1996 & loss == 5, loss := 275000/1000000]
 data[yr < 1996 & loss == 6, loss := 2750000/1000000]
 data[yr < 1996 & loss == 7, loss := 27500000/1000000]
 data[yr < 1996 & loss == 8, loss := 50000000/1000000]
+data[yr == 2016, loss:= loss/1000000]
 
 #Set names and datatype
 newNames = c("tornadoNumber", "year", "month", "day", "date", "time", "timeZone", "state", "fips", 
