@@ -49,21 +49,36 @@ data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
 data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
-data = data %>%
-  mutate(rad = pi/180,
-         a1 = startLat * rad,
-         a2 = startLon * rad,
-         b1 = endLat * rad,
-         b2 = endLon * rad,
-         dlon = b2 - a2,
-         dlat = b1 - a1,
-         a = (sin(dlat/2))^2 + cos(a1) * cos(b1) * (sin(dlon/2))^2,
-         c = 2 * atan2(sqrt(a), sqrt(1 - a)),
-         R = 6378.145,
-         distance = R * c) %>%
-  select(-rad,-a1,-a2,-b1,-b2,-dlon,-dlat,-a,-c,-R) %>%
-  mutate(distance = ifelse(endLat ==0 & endLon == 0, 0, distance)) %>% #making distance = 0 when both end lat and end lon are not available(ie. end lat = end long = 0)
-  data.table()
+getGeoDist = function(startlat, startlon, endlat, endlon){
+  rad = pi/180
+  a1 = startlat * rad
+  a2 = startlon * rad
+  b1 = endlat * rad
+  b2 = endlon * rad
+  dlon = b2 - a2
+  dlat = b1 - a1
+  a = (sin(dlat/2))^2 + cos(a1) * cos(b1) * (sin(dlon/2))^2
+  c = 2 * atan2(sqrt(a), sqrt(1 - a))
+  R = 6378.145
+  distance = R * c
+  distance
+}
+
+#data = data %>%
+#  mutate(rad = pi/180,
+#         a1 = startLat * rad,
+#         a2 = startLon * rad,
+#         b1 = endLat * rad,
+#         b2 = endLon * rad,
+#         dlon = b2 - a2,
+#         dlat = b1 - a1,
+#         a = (sin(dlat/2))^2 + cos(a1) * cos(b1) * (sin(dlon/2))^2,
+#         c = 2 * atan2(sqrt(a), sqrt(1 - a)),
+#         R = 6378.145,
+#         distance = R * c) %>%
+#  select(-rad,-a1,-a2,-b1,-b2,-dlon,-dlat,-a,-c,-R) %>%
+#  mutate(distance = ifelse(endLat ==0 & endLon == 0, 0, distance)) %>% #making distance = 0 when both end lat and end lon are not available(ie. end lat = end long = 0)
+#  data.table()
 
 # Define new column
 #data = data %>%
