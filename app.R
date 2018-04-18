@@ -1,4 +1,3 @@
-#install.packages("shinythemes")
 library(shinythemes)
 library(shiny)
 library(shinydashboard)
@@ -72,11 +71,19 @@ getGeoDist = function(startlat, startlon, endlat, endlon){
 #PLOT GENERATING FUNCTIONS
 
 #PART C9  
-map_track_state_year = function(year_var, state_var){
-  track_state_start = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
-                             endLat > 0 & endLon <0, c("tornadoID", "startLon", "startLat")]
-  track_state_end = data[state == state_var & stateNumber2 == 1 & year == year_var & startLat > 0 & startLon < 0 &
-                           endLat > 0 & endLon <0, c("tornadoID", "endLat","endLon")]
+map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), irange = c(0,1800), fatrange = c(0,160)){
+  frange = seq(min(frange), max(frange))
+  track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
+                      year == year_var & 
+                      state == state_var &
+                      fscale %in% frange &
+                      width %between% wrange & 
+                      length %between% lrange & 
+                      injuries %between% irange &
+                      fatalities %between% fatrange,
+                    c("tornadoID", "startLon", "startLat","endLat","endLon")]
+  track_state_start = track_data[,c("tornadoID", "startLon", "startLat")]
+  track_state_end = track_data[,c("tornadoID", "endLat","endLon")]
   setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
   setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
   track_state = rbind(track_state_start,track_state_end)
@@ -92,6 +99,8 @@ map_track_state_year = function(year_var, state_var){
   }
   return(m)
 }
+
+#PART B1
 
 shinyApp(
   ui = fluidPage(
@@ -215,20 +224,20 @@ shinyApp(
                                           endlat = startLat, endlon = startLon),
              distChicagoEnd = getGeoDist(startlat = 41.8781, startlon = -87.6298,
                                          endlat = endLat, endlon = endLon)) %>% 
-    data.table()
-
+      data.table()
+    
     data$distChicago = apply(data[,.(distChicagoStrt, distChicagoEnd)], MARGIN = 1, FUN = min)
-
+    
     data = data %>%
       mutate(distChicagoBin = ifelse(distChicago<100,"< 100 km", ifelse(distChicago<200,"100 - 200 km", ifelse(distChicago < 400, "200 - 400 km", "> 400 km")))) %>%
-    data.table()
+      data.table()
     
     getBinInfo = function(distBin = c("< 100 km","100 - 200 km", "200 - 400 km","> 400 km")){
       binData = data %>%
-      filter(distChicagoBin %in% distBin)
+        filter(distChicagoBin %in% distBin)
       binData
     }
-
+    
     binRecords = getBinInfo(distBin = "< 100 km")
     
     # C5
