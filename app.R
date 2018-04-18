@@ -15,7 +15,7 @@ library(leaflet)
 library(geosphere)
 
 
-
+# DATA PRE-PROCESSING
 #Read data
 data = fread("Dataset/allTornadoes.csv")
 
@@ -45,6 +45,11 @@ data[, (factor_list) := lapply(.SD, factor), .SDcols=factor_list]
 data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
+#REMOVE BAD DATA
+data = data[!fscale == -9,]
+
+# HELPER FUNCTIONS
+
 getGeoDist = function(startlat, startlon, endlat, endlon){
   rad = pi/180
   a1 = startlat * rad
@@ -68,7 +73,7 @@ getGeoDist = function(startlat, startlon, endlat, endlon){
 #data[,distance:= distm(as.numeric(c(startLon, startLat)),as.numeric(c(endLon, endLat)), fun = distHaversine)]
 #distm(c(1, 1),c(2, 2), fun = distHaversine)
 
-#PLOT GENERATING FUNCTIONS
+# PLOT GENERATING FUNCTIONS
 
 #PART C9  
 map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), irange = c(0,1800), fatrange = c(0,160)){
@@ -81,9 +86,9 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                       length %between% lrange & 
                       injuries %between% irange &
                       fatalities %between% fatrange,
-                    c("tornadoID", "startLon", "startLat","endLat","endLon")]
-  track_state_start = track_data[,c("tornadoID", "startLon", "startLat")]
-  track_state_end = track_data[,c("tornadoID", "endLat","endLon")]
+                    c("tornadoID", "startLon", "startLat","endLat","endLon","fscale")]
+  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "fscale")]
+  track_state_end = track_data[,c("tornadoID", "endLat","endLon","fscale")]
   setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
   setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
   track_state = rbind(track_state_start,track_state_end)
@@ -95,7 +100,9 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
     m <- m %>%
       addPolylines(data = track_state[tornadoID == i],
                    lng = ~lon,
-                   lat = ~lat)
+                   lat = ~lat,
+                   col = "red",
+                   weight = ~fscale)
   }
   return(m)
 }
@@ -114,13 +121,14 @@ shinyApp(
                                          choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
                             
                             radioButtons("units", h3("Units:"),
-                                         choices = list("Imperical" = 1, "Metric" = 2),selected = 1),
+                                         choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
                             h2("Filters"),
-                            sliderInput("width_input",label=h3("Width:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
-                            sliderInput("length_input",label=h3("Length:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
-                            sliderInput("injuries_input",label=h3("Injuries:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
-                            sliderInput("fatalities_input",label=h3("Fatalities:"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            sliderInput("width_input",label=h3("Width:"), min=0, max=5000, value = c(0, 5000),width="100%"),
+                            sliderInput("length_input",label=h3("Length:"), min=0, max=250, value = c(0, 250),width="100%"),
+                            sliderInput("injuries_input",label=h3("Injuries:"), min=0, max=1800, value = c(0, 1800),width="100%"),
+                            sliderInput("fatalities_input",label=h3("Fatalities:"), min=0, max=160, value = c(0, 160),width="100%"),
                             sliderInput("loss_input",label=h3("Loss"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
+                            sliderInput("fscale_input",label=h3("F-Scale"), min=0, max=5, value = c(0, 5),width="100%"), #Ugly range (just to include -9). Need to change this
                             tags$style(HTML(".irs-grid-text { font-size: 0pt; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
                             tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
                             tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
@@ -298,7 +306,8 @@ shinyApp(
     # C9
     #Function maps tornados by year. Excludes missing coordinates
     output$map_track = renderLeaflet({
-      map_track_state_year(input$year_input, "IL")
+      map_track_state_year(input$year_input, state_var = "IL", frange = input$fscale_input, wrange = input$width_input, 
+                           lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input)
     }
     )
     
