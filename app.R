@@ -102,7 +102,10 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                    lng = ~lon,
                    lat = ~lat,
                    col = "red",
-                   weight = ~fscale)
+                   weight = ~fscale,
+                   highlightOptions = highlightOptions(color = "white", weight = 2,
+                                                                          bringToFront = TRUE),
+                   label = ~fscale)
   }
   return(m)
 }
