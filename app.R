@@ -49,6 +49,9 @@ data[, tornadoID := factor(tornadoID)]
 data = data[!fscale == -9,]
 
 # HELPER FUNCTIONS
+normalize = function (x){
+  (x-min(x))/(max(x)-min(x))
+  }
 
 getGeoDist = function(startlat, startlon, endlat, endlon){
   rad = pi/180
@@ -76,7 +79,8 @@ getGeoDist = function(startlat, startlon, endlat, endlon){
 # PLOT GENERATING FUNCTIONS
 
 #PART C9  
-map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), irange = c(0,1800), fatrange = c(0,160)){
+map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
+                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale"){
   frange = seq(min(frange), max(frange))
   track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
                       year == year_var & 
@@ -86,26 +90,38 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                       length %between% lrange & 
                       injuries %between% irange &
                       fatalities %between% fatrange,
-                    c("tornadoID", "startLon", "startLat","endLat","endLon","fscale")]
-  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "fscale")]
-  track_state_end = track_data[,c("tornadoID", "endLat","endLon","fscale")]
+                    c("tornadoID", "startLon", "startLat","endLat","endLon", map_markers), with = FALSE]
+  setnames(track_data, map_markers, "map_marker")
+  #Normalize data - In order to visualize
+  track_data[, ("map_marker_normal") := normalize(as.numeric(map_marker))*3]
+  print(head(track_data))
+  
+  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "map_marker", "map_marker_normal"), with = FALSE]
+  track_state_end = track_data[,c("tornadoID", "endLat","endLon", "map_marker", "map_marker_normal"), with = FALSE]
   setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
   setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
   track_state = rbind(track_state_start,track_state_end)
   
   m = leaflet() %>% 
-    addProviderTiles(providers$CartoDB.Positron) %>%
-    setView(-87.987437, 41.913741, zoom = 5)
+    addProviderTiles(providers$CartoDB.Positron, group = "Light") %>%
+    addProviderTiles(providers$Stamen.Toner, group = "Dark") %>%
+    addProviderTiles(providers$OpenStreetMap.Mapnik, group = "City Classic") %>%
+    addProviderTiles(providers$Stamen.Terrain, group = "Topological") %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "Sattelite") %>%
+    setView(-87.987437, 41.913741, zoom = 5) %>%
+    addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
+                     options = layersControlOptions(collapsed = FALSE)
+    )
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
       addPolylines(data = track_state[tornadoID == i],
                    lng = ~lon,
                    lat = ~lat,
                    col = "red",
-                   weight = ~fscale,
+                   weight = ~map_marker_normal+1,
                    highlightOptions = highlightOptions(color = "white", weight = 2,
                                                                           bringToFront = TRUE),
-                   label = ~fscale)
+                   label = ~paste(map_markers, ":",map_marker)) 
   }
   return(m)
 }
@@ -162,7 +178,11 @@ shinyApp(
                           fixedRow(
                             column(8,
                                    leafletOutput("map_track"),
-                                   "Map"
+                                   "Map",
+                                   radioButtons("radio", h3("Inputs buttons"),
+                                                choices = list("F-scale" = "fscale", "Injuries" = "injuries",
+                                                               "Losses" = "loss", "Length" = "length", 
+                                                               "Width" = "width", "Fatalities" = "fatalities"),selected = "fscale")
                             ),
                             column(4,
                                    "Table"
@@ -310,7 +330,8 @@ shinyApp(
     #Function maps tornados by year. Excludes missing coordinates
     output$map_track = renderLeaflet({
       map_track_state_year(input$year_input, state_var = "IL", frange = input$fscale_input, wrange = input$width_input, 
-                           lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input)
+                           lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
+                           map_markers = input$radio)
     }
     )
     

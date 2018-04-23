@@ -6,3 +6,7 @@
 *.csv
 
 *.csv#
+
+Dataset/Counties\.txt
+
+*.dcf
