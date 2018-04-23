@@ -47,6 +47,7 @@ data[, tornadoID := factor(tornadoID)]
 
 #REMOVE BAD DATA
 data = data[!fscale == -9,]
+data$fscale = factor(data$fscale)
 
 # HELPER FUNCTIONS
 normalize = function (x){
@@ -79,12 +80,13 @@ getGeoDist = function(startlat, startlon, endlat, endlon){
 # PLOT GENERATING FUNCTIONS
 
 #PART C9  
-map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
+map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
                                 irange = c(0,1800), fatrange = c(0,160), map_markers="fscale"){
   frange = seq(min(frange), max(frange))
+  state_var = c(state_var1, state_var2)
   track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
                       year == year_var & 
-                      state == state_var &
+                      state %in% state_var &
                       fscale %in% frange &
                       width %between% wrange & 
                       length %between% lrange & 
@@ -95,9 +97,6 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
   
   #Normalize data - In order to visualize
   track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*3]
-  if (is.factor(track_data$map_marker)){
-    track_data[, ("map_marker") := as.numeric(as.character(map_marker))]
-  }
   
   track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "map_marker", "map_marker_normal"), with = FALSE]
   track_state_end = track_data[,c("tornadoID", "endLat","endLon", "map_marker", "map_marker_normal"), with = FALSE]
@@ -105,10 +104,22 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
   setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
   track_state = rbind(track_state_start,track_state_end)
   
-  pal_colors = colorRamp(c("#ff6767", "red4"))
-  pal <- colorNumeric(
-    palette = pal_colors,
-    domain = track_state$map_marker)
+  pal_colors = colorRamp(c("#ff6767", "#400000"))
+  
+  if (is.factor(track_data$map_marker)){
+    pal <- colorFactor(
+      palette = pal_colors,
+      domain = track_state$map_marker)
+    # track_data[, ("map_marker") := as.numeric(as.character(map_marker))]
+  }
+  else{
+    pal <- colorNumeric(
+      palette = pal_colors, 
+      domain = track_state$map_marker)
+  }
+  hurricane_icon = makeIcon("hurricane-icon.png",32,20,iconAnchorX = 10, iconAnchorY = 5)
+  html_legend <- "<img src='hurricane-icon.png' style='width:10px;height:10px;'>Tornado End"
+  
   
   m = leaflet() %>% 
     addProviderTiles(providers$CartoDB.Positron, group = "Light") %>%
@@ -118,11 +129,10 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
     addProviderTiles(providers$Esri.WorldImagery, group = "Sattelite") %>%
     setView(-87.987437, 41.913741, zoom = 5) %>%
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
-                     options = layersControlOptions(collapsed = FALSE)
-    ) %>%
+                     options = layersControlOptions(collapsed = FALSE)) %>%
     addLegend("bottomright", pal = pal, values = track_state$map_marker,
-              opacity = 1, bins = 5
-    )
+              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
+    addControl(html = html_legend, position = "bottomleft")
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
       addPolylines(data = track_state[tornadoID == i],
@@ -132,7 +142,11 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                    weight = ~(map_marker_normal),
                    highlightOptions = highlightOptions(color = "white", weight = 2,
                                                                           bringToFront = TRUE),
-                   label = ~paste(map_markers, ":",map_marker)) 
+                   label = ~paste(map_markers, ":",map_marker)) %>%
+    addMarkers(data = track_state_end[tornadoID == i], 
+               icon = hurricane_icon,
+               lng = ~lon,
+               lat = ~lat)
   }
   return(m)
 }
@@ -340,7 +354,7 @@ shinyApp(
     # C9
     #Function maps tornados by year. Excludes missing coordinates
     output$map_track = renderLeaflet({
-      map_track_state_year(input$year_input, state_var = "IL", frange = input$fscale_input, wrange = input$width_input, 
+      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = "WI", frange = input$fscale_input, wrange = input$width_input, 
                            lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
                            map_markers = input$radio)
     }
