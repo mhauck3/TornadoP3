@@ -93,7 +93,8 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                     c("tornadoID", "startLon", "startLat","endLat","endLon", map_markers), with = FALSE]
   setnames(track_data, map_markers, "map_marker")
   #Normalize data - In order to visualize
-  track_data[, ("map_marker_normal") := normalize(as.numeric(map_marker))*3]
+  track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*3]
+  track_data[, ("map_marker") := as.numeric(map_marker)]
   print(head(track_data))
   
   track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "map_marker", "map_marker_normal"), with = FALSE]
@@ -101,6 +102,11 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
   setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
   setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
   track_state = rbind(track_state_start,track_state_end)
+  
+  pal_colors = colorRamp(c("#ff6767", "red4"))
+  pal <- colorNumeric(
+    palette = pal_colors,
+    domain = track_state$map_marker)
   
   m = leaflet() %>% 
     addProviderTiles(providers$CartoDB.Positron, group = "Light") %>%
@@ -111,14 +117,17 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
     setView(-87.987437, 41.913741, zoom = 5) %>%
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
                      options = layersControlOptions(collapsed = FALSE)
+    ) %>%
+    addLegend("bottomright", pal = pal, values = track_state$map_marker,
+              opacity = 1
     )
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
       addPolylines(data = track_state[tornadoID == i],
                    lng = ~lon,
                    lat = ~lat,
-                   col = "red",
-                   weight = ~map_marker_normal+1,
+                   col = ~pal(map_marker),
+                   weight = ~(map_marker_normal),
                    highlightOptions = highlightOptions(color = "white", weight = 2,
                                                                           bringToFront = TRUE),
                    label = ~paste(map_markers, ":",map_marker)) 
