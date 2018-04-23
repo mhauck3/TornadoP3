@@ -92,10 +92,12 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                       fatalities %between% fatrange,
                     c("tornadoID", "startLon", "startLat","endLat","endLon", map_markers), with = FALSE]
   setnames(track_data, map_markers, "map_marker")
+  
   #Normalize data - In order to visualize
   track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*3]
-  track_data[, ("map_marker") := as.numeric(map_marker)]
-  print(head(track_data))
+  if (is.factor(track_data$map_marker)){
+    track_data[, ("map_marker") := as.numeric(as.character(map_marker))]
+  }
   
   track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "map_marker", "map_marker_normal"), with = FALSE]
   track_state_end = track_data[,c("tornadoID", "endLat","endLon", "map_marker", "map_marker_normal"), with = FALSE]
@@ -119,7 +121,7 @@ map_track_state_year = function(year_var, state_var, frange = c(-9,9), wrange = 
                      options = layersControlOptions(collapsed = FALSE)
     ) %>%
     addLegend("bottomright", pal = pal, values = track_state$map_marker,
-              opacity = 1
+              opacity = 1, bins = 5
     )
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
