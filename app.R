@@ -13,11 +13,14 @@ library(rsconnect)
 library(scales)
 library(leaflet)
 library(geosphere)
-
+library(gridExtra)
 
 # DATA PRE-PROCESSING
 #Read data
 data = fread("Dataset/allTornadoes.csv")
+fatalities_df=read.csv( file = "Dataset/heat_fatalities.csv",header=TRUE)
+injuries_df=read.csv(file = "Dataset/heat_injuries.csv",header=TRUE)
+
 
 #Change adjust loss data 
 data[yr < 1996 & loss == 1, loss := 25/1000000]
@@ -207,7 +210,7 @@ shinyApp(
                                    radioButtons("radio", h3("Inputs buttons"),
                                                 choices = list("F-scale" = "fscale", "Injuries" = "injuries",
                                                                "Losses" = "loss", "Length" = "length", 
-                                                               "Width" = "width", "Fatalities" = "fatalities"),selected = "fscale")
+                                                               "Width" = "width", "Fatalities" = "fatalities"),selected = "fscale",inline=T)
                             ),
                             column(4,
                                    "Table"
@@ -215,9 +218,10 @@ shinyApp(
                           )
                           
                    ),
-                   column(2,
+                   column(3,
                           "Column 2",
                           fluidRow("Heat Map"),
+                          plotOutput("HeatMaps"),
                           fluidRow("10 destructive Tornadoes")
                    )
                  )
@@ -359,6 +363,25 @@ shinyApp(
                            map_markers = input$radio)
     }
     )
+    output$HeatMaps <- renderPlot({
+      g1=ggplot(fatalities_df, aes(x=long, y=lat, group=group, fill=numbers))+ ggtitle("Fatalities per county") + 
+        geom_polygon()+
+        scale_fill_gradientn(
+          colours=c("lightgreen","yellow","orange","darkorange" ,"red"),
+          #  values=rescale(c(-3, -2, -1,0)),
+          guide="colorbar"
+        )+theme_void()
+      
+      g2=ggplot(injuries_df, aes(x=long, y=lat, group=group, fill=numbers))+ ggtitle("Injuries per county") + 
+        geom_polygon()+
+        scale_fill_gradientn(
+          colours=c("lightgreen","yellow","orange","darkorange" ,"red"),
+          #  values=rescale(c(-3, -2, -1,0)),
+          guide="colorbar"
+        )+theme_void()
+      grid.arrange(g1,g2, ncol=2)
+      
+    })
     
   }
 )
