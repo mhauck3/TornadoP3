@@ -205,15 +205,25 @@ shinyApp(
                           #sliderInput("Hour_input", "Hour:", 0, 24, 0),
                           fixedRow(
                             column(8,
-                                   "Compare Illinois Data to",
+                                   h4("Compare Illinois Data to"),
+                                   tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
                                    selectInput("state_select", "", states,selected="Wisconsin"),
-                                   leafletOutput("map_track"),
-                                  
+                                   leafletOutput("map_track",height = "600px"),
+                                   tags$style("input[type='radio']:checked+span{ 
+                                              
+                                              font-size: 24px;
+                                              }
+                                              input[type='radio']+span{ 
+                                              
+                                              font-size: 24px;
+                                              }"),
                                    
-                                   radioButtons("radio", h3("View according to"),
+                                   radioButtons("radio", h4("View according to"),
                                                 choices = list("F-scale" = "fscale", "Injuries" = "injuries",
                                                                "Losses" = "loss", "Length" = "length", 
-                                                               "Width" = "width", "Fatalities" = "fatalities"),selected = "fscale",inline=T)
+                                                               "Width" = "width", "Fatalities" = "fatalities"),
+                                                                selected = "fscale",inline=T)
+                                                                
                             ),
                             column(4,
                                    "Table"
