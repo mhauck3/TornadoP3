@@ -20,6 +20,7 @@ library(gridExtra)
 data = fread("Dataset/allTornadoes.csv")
 fatalities_df=read.csv( file = "Dataset/heat_fatalities.csv",header=TRUE)
 injuries_df=read.csv(file = "Dataset/heat_injuries.csv",header=TRUE)
+states_data = fread("Dataset/states.csv")
 
 
 #Change adjust loss data 
@@ -72,6 +73,7 @@ getGeoDist = function(startlat, startlon, endlat, endlon){
   distance
 }
 
+states=states_data[,c("State")]
 # Define new column
 #data = data %>%
 #  mutate(distance = distm(c(startLon, startLat),c(endLon, endLat), fun = distHaversine)) %>%
@@ -180,10 +182,8 @@ shinyApp(
                             tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
                             tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
                             tags$style(HTML(".js-irs-3 .irs-single, .js-irs-3 .irs-bar-edge, .js-irs-3 .irs-bar {background: red}")),
-                            tags$style(HTML(".js-irs-4 .irs-single, .js-irs-4 .irs-bar-edge, .js-irs-4 .irs-bar {background: red}")),
-                            HTML("<div class=card text-white bg-primary mb-3 style=max-width: 20rem;><div class=card-header>Header</div><div class=card-body><h4 class=card-title>About</h4>
-         <p class=card-text>Some quick example text to build on the card title and make up the bulk of the card's content.</p>
-         </div></div>")),
+                            tags$style(HTML(".js-irs-4 .irs-single, .js-irs-4 .irs-bar-edge, .js-irs-4 .irs-bar {background: red}"))
+                            ),
                
                mainPanel(
                  
@@ -205,8 +205,11 @@ shinyApp(
                           #sliderInput("Hour_input", "Hour:", 0, 24, 0),
                           fixedRow(
                             column(8,
+                                   "Compare Illinois Data to",
+                                   selectInput("state_select", "", states,selected="Wisconsin"),
                                    leafletOutput("map_track"),
                                    "Map",
+                                   
                                    radioButtons("radio", h3("Inputs buttons"),
                                                 choices = list("F-scale" = "fscale", "Injuries" = "injuries",
                                                                "Losses" = "loss", "Length" = "length", 
@@ -359,7 +362,8 @@ shinyApp(
     # C9
     #Function maps tornados by year. Excludes missing coordinates
     output$map_track = renderLeaflet({
-      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = "WI", frange = input$fscale_input, wrange = input$width_input, 
+      subset=states_data[State==input$state_select]
+      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
                            lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
                            map_markers = input$radio)
     }
