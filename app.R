@@ -56,7 +56,7 @@ data$fscale = factor(data$fscale)
 # HELPER FUNCTIONS
 normalize = function (x){
   (x-min(x))/(max(x)-min(x))
-  }
+}
 
 getGeoDist = function(startlat, startlon, endlat, endlon){
   rad = pi/180
@@ -146,12 +146,12 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                    col = ~pal(map_marker),
                    weight = ~(map_marker_normal),
                    highlightOptions = highlightOptions(color = "white", weight = 2,
-                                                                          bringToFront = TRUE),
+                                                       bringToFront = TRUE),
                    label = ~paste(map_markers, ":",map_marker)) %>%
-    addMarkers(data = track_state_end[tornadoID == i], 
-               icon = hurricane_icon,
-               lng = ~lon,
-               lat = ~lat)
+      addMarkers(data = track_state_end[tornadoID == i], 
+                 icon = hurricane_icon,
+                 lng = ~lon,
+                 lat = ~lat)
   }
   return(m)
 }
@@ -161,89 +161,81 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
 shinyApp(
   ui = navbarPage(h1("You Spin me Round!"),
                   theme = shinytheme("superhero"),
-    
-    tabPanel(h2("Home"),
-             sidebarLayout(
-               sidebarPanel(width = 2, h2("Preferences"),
-                            
-                            radioButtons("hr", h3("Hour:"),
-                                         choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
-                            
-                            radioButtons("units", h3("Units:"),
-                                         choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
-                            h2("Filters"),
-                            sliderInput("width_input",label=h3("Width:"), min=0, max=5000, value = c(0, 5000),width="100%"),
-                            sliderInput("length_input",label=h3("Length:"), min=0, max=250, value = c(0, 250),width="100%"),
-                            sliderInput("injuries_input",label=h3("Injuries:"), min=0, max=1800, value = c(0, 1800),width="100%"),
-                            sliderInput("fatalities_input",label=h3("Fatalities:"), min=0, max=160, value = c(0, 160),width="100%"),
-                            sliderInput("loss_input",label=h3("Loss"), min=1950, max=2016, value = c(1950, 2016),width="100%"),
-                            sliderInput("fscale_input",label=h3("F-Scale"), min=0, max=5, value = c(0, 5),width="100%"), #Ugly range (just to include -9). Need to change this
-                            tags$style(HTML(".irs-grid-text { font-size: 0pt; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
-                            tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
-                            tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
-                            tags$style(HTML(".js-irs-3 .irs-single, .js-irs-3 .irs-bar-edge, .js-irs-3 .irs-bar {background: red}")),
-                            tags$style(HTML(".js-irs-4 .irs-single, .js-irs-4 .irs-bar-edge, .js-irs-4 .irs-bar {background: red}"))
-                            ),
-               
-               mainPanel(
-                 
-                 
-                 fluidRow(
-                   
-                   column(9,
-                          
-                          "Sliders",
-                          
-                          sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
-                          
-                          tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red}")),
-                          tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
-                          #sliderInput("Month_input", "Month:"),
-                          #tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
-                          #sliderInput("Day_input", "Day:"),
-                          #tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red}")),
-                          #sliderInput("Hour_input", "Hour:", 0, 24, 0),
-                          fixedRow(
-                            column(8,
-                                   h4("Compare Illinois Data to"),
-                                   tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
-                                   selectInput("state_select", "", states,selected="Wisconsin"),
-                                   leafletOutput("map_track",height = "600px"),
-                                   tags$style("input[type='radio']:checked+span{ 
-                                              
-                                              font-size: 24px;
-                                              }
-                                              input[type='radio']+span{ 
-                                              
-                                              font-size: 24px;
-                                              }"),
+                  
+                  tabPanel(h2("Home"),
+                           sidebarLayout(
+                             sidebarPanel(width = 2, h2("Preferences"),
+                                          
+                                          radioButtons("hr", h3("Hour:"),
+                                                       choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
+                                          
+                                          radioButtons("units", h3("Units:"),
+                                                       choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
+                                          h2("Filters"),
+                                          sliderInput("width_input",label=h3("Width:"), min=0, max=max(data[,c('width')]), value = c(0, max(data[,c('width')])),width="100%"),
+                                          sliderInput("length_input",label=h3("Length:"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('length')])),width="100%"),
+                                          sliderInput("injuries_input",label=h3("Injuries:"), min=0, max=max(data[,c('injuries')]), value = c(0, max(data[,c('injuries')])),width="100%"),
+                                          sliderInput("fatalities_input",label=h3("Fatalities:"), min=0, max=max(data[,c('fatalities')]), value = c(0, max(data[,c('fatalities')])),width="100%"),
+                                          sliderInput("loss_input",label=h3("Loss"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
+                                          sliderInput("fscale_input",label=h3("F-Scale"), min=0, max=5, value = c(0, 5),width="100%"), #Ugly range (just to include -9). Need to change this
+                                          tags$style(HTML(".irs-grid-text { font-size: 0px; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
+                                          tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red }")),
+                                          tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
+                                          tags$style(HTML(".js-irs-3 .irs-single, .js-irs-3 .irs-bar-edge, .js-irs-3 .irs-bar {background: red}")),
+                                          tags$style(HTML(".js-irs-4 .irs-single, .js-irs-4 .irs-bar-edge, .js-irs-4 .irs-bar {background: red}"))
+                             ),
+                             
+                             mainPanel(
+                               
+                               fluidRow(
+                                 
+                                 column(9,
+                                        sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
+                                        
+                                        tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
+                                                        .irs-min {font-size: 20px;font-family: 'arial'; color: white;}")),
+                                        tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
+                                        fixedRow(
+                                          column(8,
+                                                 h4("Compare Illinois Data to"),
+                                                 tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
+                                                 selectInput("state_select", "", states,selected="Wisconsin"),
+                                                 leafletOutput("map_track",height = "600px"),
+                                                 tags$style("input[type='radio']:checked+span{ 
+                                                            
+                                                            font-size: 24px;
+                                                            }
+                                                            input[type='radio']+span{ 
+                                                            
+                                                            font-size: 24px;
+                                                            }"),
                                    
-                                   radioButtons("radio", h4("View according to"),
-                                                choices = list("F-scale" = "fscale", "Injuries" = "injuries",
-                                                               "Losses" = "loss", "Length" = "length", 
-                                                               "Width" = "width", "Fatalities" = "fatalities"),
-                                                                selected = "fscale",inline=T)
-                                                                
-                            ),
-                            column(4,
-                                   "Table"
-                            )
-                          )
-                          
-                   ),
-                   column(3,
-                          "Column 2",
-                          fluidRow("Heat Map"),
-                          plotOutput("HeatMaps"),
-                          fluidRow("10 destructive Tornadoes")
-                   )
-                 )
-               )
-             )),
-    tabPanel(h2("About"),
-             h3("About text")
-             
-    )
+                                                 radioButtons("radio", h4("View according to"),
+                                                              choices = list("F-scale" = "fscale", "Injuries" = "injuries",
+                                                                             "Losses" = "loss", "Length" = "length", 
+                                                                             "Width" = "width", "Fatalities" = "fatalities"),
+                                                              selected = "fscale",inline=T)
+                                                 
+                                                 ),
+                                          column(4,
+                                                 "Table"
+                                          )
+                                        )
+                                        
+                               ),
+                               column(3,
+                                      "Column 2",
+                                      fluidRow("Heat Map"),
+                                      plotOutput("HeatMaps"),
+                                      fluidRow("10 destructive Tornadoes")
+                               )
+                           )
+                           )
+                             )),
+                  tabPanel(h2("About"),
+                           h3("About text")
+                           
+                  )
   ),
   server = function(input, output) {
     # C1
@@ -399,4 +391,4 @@ shinyApp(
     })
     
   }
-)
+  )
