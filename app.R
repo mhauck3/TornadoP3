@@ -208,9 +208,9 @@ shinyApp(
                                    "Compare Illinois Data to",
                                    selectInput("state_select", "", states,selected="Wisconsin"),
                                    leafletOutput("map_track"),
-                                   "Map",
+                                  
                                    
-                                   radioButtons("radio", h3("Inputs buttons"),
+                                   radioButtons("radio", h3("View according to"),
                                                 choices = list("F-scale" = "fscale", "Injuries" = "injuries",
                                                                "Losses" = "loss", "Length" = "length", 
                                                                "Width" = "width", "Fatalities" = "fatalities"),selected = "fscale",inline=T)
