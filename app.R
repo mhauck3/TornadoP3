@@ -157,10 +157,10 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
 #PART B1
 
 shinyApp(
-  ui = fluidPage(
-    theme = shinytheme("superhero"),
+  ui = navbarPage(h1("You Spin me Round!"),
+                  theme = shinytheme("superhero"),
     
-    tabPanel("Something",
+    tabPanel(h2("Home"),
              sidebarLayout(
                sidebarPanel(width = 2, h2("Preferences"),
                             
@@ -227,8 +227,9 @@ shinyApp(
                  )
                )
              )),
-    tabPanel("Summary",
-             verbatimTextOutput("summary")
+    tabPanel(h2("About"),
+             h3("About text")
+             
     )
   ),
   server = function(input, output) {
