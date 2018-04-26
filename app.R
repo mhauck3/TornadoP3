@@ -85,10 +85,17 @@ states=states_data[,c("State")]
 # PLOT GENERATING FUNCTIONS
 
 #PART C9  
+#Define Units
+units = c("", "people", "people", "miles", "miles", "million USD")
+names(units) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
+
 map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
                                 irange = c(0,1800), fatrange = c(0,160), map_markers="fscale"){
   frange = seq(min(frange), max(frange))
+  
   state_var = c(state_var1, state_var2)
+  unit = units[[map_markers]]
+  
   track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
                       year == year_var & 
                       state %in% state_var &
@@ -136,7 +143,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
                      options = layersControlOptions(collapsed = FALSE)) %>%
     addLegend("bottomright", pal = pal, values = track_state$map_marker,
-              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
+              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1, suffix = paste(" ",unit))) %>%
     addControl(html = html_legend, position = "bottomleft")
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
@@ -147,7 +154,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                    weight = ~(map_marker_normal),
                    highlightOptions = highlightOptions(color = "white", weight = 2,
                                                        bringToFront = TRUE),
-                   label = ~paste(map_markers, ":",map_marker)) %>%
+                   label = ~paste(map_markers, ":",map_marker, " ", unit)) %>%
       addMarkers(data = track_state_end[tornadoID == i], 
                  icon = hurricane_icon,
                  lng = ~lon,
