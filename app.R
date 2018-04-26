@@ -226,7 +226,7 @@ shinyApp(
                                column(3,
                                       "Column 2",
                                       fluidRow("Heat Map"),
-                                      plotOutput("HeatMaps"),
+                                      plotOutput("HeatMaps",width="600px"),
                                       fluidRow("10 destructive Tornadoes")
                                )
                            )
