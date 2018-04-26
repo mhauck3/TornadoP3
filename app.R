@@ -377,6 +377,8 @@ shinyApp(
                            map_markers = input$radio)
     }
     )
+    
+    ###Graduate HeatMap
     output$HeatMaps <- renderPlot({
       
       g1=ggplot(fatalities_df, aes(x=long, y=lat, group=group, fill=numbers))+ ggtitle("Fatalities per county") + 
