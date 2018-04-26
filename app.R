@@ -371,13 +371,23 @@ shinyApp(
     }
     )
     output$HeatMaps <- renderPlot({
+      
       g1=ggplot(fatalities_df, aes(x=long, y=lat, group=group, fill=numbers))+ ggtitle("Fatalities per county") + 
         geom_polygon()+
         scale_fill_gradientn(
           colours=c("lightgreen","yellow","orange","darkorange" ,"red"),
           #  values=rescale(c(-3, -2, -1,0)),
           guide="colorbar"
-        )+theme_void()
+        )+theme_void()+
+        theme(
+          plot.title = element_text(color="Yellow", size=20),
+          legend.title = element_text(colour = 'white',size=15),
+          legend.text=element_text(colour = 'white',size=15),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill="midnightblue"),
+          plot.background = element_rect(fill = "midnightblue")
+        )
       
       g2=ggplot(injuries_df, aes(x=long, y=lat, group=group, fill=numbers))+ ggtitle("Injuries per county") + 
         geom_polygon()+
@@ -385,8 +395,20 @@ shinyApp(
           colours=c("lightgreen","yellow","orange","darkorange" ,"red"),
           #  values=rescale(c(-3, -2, -1,0)),
           guide="colorbar"
-        )+theme_void()
+        )+theme_void()+
+        theme(
+          plot.title = element_text(color="Yellow", size=20),
+          legend.title = element_text(colour = 'white',size=15),
+          legend.text=element_text(colour = 'white',size=15),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill="midnightblue"),
+          plot.background = element_rect(fill = "midnightblue")
+        )
+      
+      
       grid.arrange(g1,g2, ncol=2)
+      
       
     })
     
