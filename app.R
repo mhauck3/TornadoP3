@@ -185,8 +185,147 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                  lng = ~lon,
                  lat = ~lat)
   }
+  
+
   return(m)
 }
+
+
+# Label Option 1
+l1<- mapply(
+  function(county, inj, fatal, losses) {
+    htmltools::HTML(
+      sprintf(
+        "<div style='font-size:12px;height:100px;width:190px;float:left'>
+        <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
+        
+        
+        <div style='width:95%%'>
+        <span style='float:left'>Injuries:</span>
+        <span style='float:right'>%g</span>
+        
+        <br/>
+        <span style='float:left'>Fatalities:</span>
+        <span style='float:right'>%g</span>
+        
+        <br/>
+        <span style='float:left'>Losses (Millions of $):</span>
+        <span style='float:right'>%f</span>
+        
+        <br/>
+        
+        
+        <br/>
+        
+        
+        
+        </div>
+        
+        </div>",
+        
+        
+        county,
+        inj,
+        fatal,
+        losses
+      )
+    )
+  },
+  countydata$county[1:102],
+  ceiling(round(countydata$injured[1:102],2)),
+  ceiling(round(countydata$fatalities[1:102],2)), 
+  round(countydata$losses[1:102],2),
+  SIMPLIFY = F) 
+
+
+# Label Option 2
+l2 <- mapply(
+  function(county, f0, f1, f2,f3,f4,f5, f9) {
+    htmltools::HTML(
+      sprintf(
+        "<div style='font-size:12px;height:220px;width:90px;float:left'>
+        <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
+        
+        
+        <div style='width:95%%'>
+        <span style='float:left'>F0 Scale:</span>
+        <span style='float:right'>%d</span>
+        
+        <br/>
+        <span style='float:left'>F1 Scale:</span>
+        <span style='float:right'>%d</span>
+        
+        <br/>
+        <span style='float:left'>F2 Scale:</span>
+        <span style='float:right'>%d</span>
+        
+        
+        <br/>
+        <span style='float:left'>F3 Scale:</span>
+        <span style='float:right'>%d</span>
+        
+        <br/>
+        <span style='float:left'>F4 Scale:</span>
+        <span style='float:right'>%d</span>
+        
+        
+        <br/>
+        <span style='float:left'>F5 Scale:</span>
+        <span style='float:right'>%d</span>
+        
+        <br/>
+        <span style='float:left'>Unknown:</span>
+        <span style='float:right'>%d</span>
+        
+        
+        <br/>
+        
+        
+        <br/>
+        
+        
+        <br/>
+        
+        
+        <br/>
+        
+        
+        
+        
+        
+        <br/>
+        
+        
+        <br/>
+        
+        
+        
+        </div>
+        
+        </div>",
+        
+        
+        county,
+        f0,
+        f1,
+        f2,
+        f3,
+        f4,
+        f5,
+        f9
+      )
+    )
+  },
+  countydata$county[1:102],
+  countydata$f0[1:102],
+  countydata$f1[1:102], 
+  countydata$f2[1:102], 
+  countydata$f3[1:102],
+  countydata$f4[1:102],
+  countydata$f5[1:102],
+  countydata$f9[1:102],
+  SIMPLIFY = F) 
+
 
 #PART B1
 
@@ -265,16 +404,24 @@ shinyApp(
                                       "Yearly Plots"
                                ),
                                column(2,
-                                      "Column 2",
+                                      
                                       fluidRow("Heat Map"),
-                                      plotOutput("HeatMaps",width="1000px",height="700px"),
+                                     
+                                     plotOutput("HeatMaps",width="1000px",height="700px"),
+                                     radioButtons("heat_map_option", h3(""),
+                                                  choices = list("Option 1" = 1, "Option 2" = 2),selected = 2,inline=T),
+                                      leafletOutput("Heat_Maps",width="1000px",height="700px"),
                                       fluidRow("10 destructive Tornadoes")
                                )
                            )
                            )
                              )),
                   tabPanel(h2("Analysis"),
-                           h3("About text")),
+                           sidebarPanel(width = 1, h2("Preferences"),
+                                        
+                                        radioButtons("hr", h3("Hour:"),
+                                                     choices = list("24Hr" = 1, "12Hr" = 2),selected = 1)),
+                           mainPanel("Analysis Plots")),
                   tabPanel(h2("About"),
                            h3("About text")
                            
@@ -457,140 +604,30 @@ shinyApp(
       
     })
     
-    
-    # Label Option 1
-    l1<- mapply(
-      function(county, inj, fatal, losses) {
-        htmltools::HTML(
-          sprintf(
-            "<div style='font-size:12px;height:100px;width:190px;float:left'>
-            <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
-            
-            
-            <div style='width:95%%'>
-            <span style='float:left'>Injuries:</span>
-            <span style='float:right'>%g</span>
-            
-            <br/>
-            <span style='float:left'>Fatalities:</span>
-            <span style='float:right'>%g</span>
-            
-            <br/>
-            <span style='float:left'>Losses (Millions of $):</span>
-            <span style='float:right'>%f</span>
-            
-            <br/>
-            
-            
-            <br/>
-            
-            
-            
-            </div>
-            
-            </div>",
-            
-            
-            county,
-            inj,
-            fatal,
-            losses
-          )
-        )
-      },
-      countydata$county[1:102],
-      ceiling(round(countydata$injured[1:102],2)),
-      ceiling(round(countydata$fatalities[1:102],2)), 
-      round(countydata$losses[1:102],2),
-      SIMPLIFY = F) 
-    
-    
-    # Label Option 2
-    l2 <- mapply(
-      function(county, f0, f1, f2,f3,f4,f5, f9) {
-        htmltools::HTML(
-          sprintf(
-            "<div style='font-size:12px;height:220px;width:90px;float:left'>
-            <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
-            
-            
-            <div style='width:95%%'>
-            <span style='float:left'>F0 Scale:</span>
-            <span style='float:right'>%d</span>
-            
-            <br/>
-            <span style='float:left'>F1 Scale:</span>
-            <span style='float:right'>%d</span>
-            
-            <br/>
-            <span style='float:left'>F2 Scale:</span>
-            <span style='float:right'>%d</span>
-            
-            
-            <br/>
-            <span style='float:left'>F3 Scale:</span>
-            <span style='float:right'>%d</span>
-            
-            <br/>
-            <span style='float:left'>F4 Scale:</span>
-            <span style='float:right'>%d</span>
-            
-            
-            <br/>
-            <span style='float:left'>F5 Scale:</span>
-            <span style='float:right'>%d</span>
-            
-            <br/>
-            <span style='float:left'>Unknown:</span>
-            <span style='float:right'>%d</span>
-            
-            
-            <br/>
-            
-            
-            <br/>
-            
-            
-            <br/>
-            
-            
-            <br/>
-            
-            
-            
-            
-            
-            <br/>
-            
-            
-            <br/>
-            
-            
-            
-            </div>
-            
-            </div>",
-        
- 
-        county,
-        f0,
-        f1,
-        f2,
-        f3,
-        f4,
-        f5,
-        f9
-      )
+    output$Heat_Maps<-renderLeaflet(
+      
+      #  if(input$heat_map_option==1){
+       #   ILall@data$hoverText= l1}else{ILall@data$hoverText=l2},
+      #l=l1,
+      leaflet() %>% 
+        addTiles() %>% 
+        addPolygons(data=ILall,
+                    weight = 1, 
+                    opacity = 0.5,
+                    color = "blue",
+                    fillOpacity = 0.1,
+                    highlight = highlightOptions(
+                      weight = 1,
+                      color = "#666",
+                      fillOpacity = 0.1,
+                      bringToFront = TRUE),
+                    label = if(input$heat_map_option==1){l1}else{l2},
+                    labelOptions = labelOptions(
+                      style = list("font-weight" = "normal", padding = "3px 8px"),
+                      textsize = "15px",
+                      direction = "auto"))
     )
-  },
-  countydata$county[1:102],
-  countydata$f0[1:102],
-  countydata$f1[1:102], 
-  countydata$f2[1:102], 
-  countydata$f3[1:102],
-  countydata$f4[1:102],
-  countydata$f5[1:102],
-  countydata$f9[1:102],
- SIMPLIFY = F) 
+    
+    
   }
   )
