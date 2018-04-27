@@ -408,8 +408,8 @@ shinyApp(
                                       fluidRow("Heat Map"),
                                      
                                      plotOutput("HeatMaps",width="1000px",height="700px"),
-                                     h3("On Hover Details:"),
-                                     radioButtons("heat_map_option", h3(""),
+                                     
+                                     radioButtons("heat_map_option", h3("On Hover Details:"),
                                                   choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
                                       leafletOutput("Heat_Maps",width="1000px",height="700px"),
                                       fluidRow("10 destructive Tornadoes")
