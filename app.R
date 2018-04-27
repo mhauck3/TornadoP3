@@ -226,17 +226,23 @@ shinyApp(
                                
                                fluidRow(width = 11,
                                  
-                                 column(9,
+                                 column(8,
                                         sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
                                         
                                         tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
                                                         .irs-min {font-size: 20px;font-family: 'arial'; color: white;}")),
                                         tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
                                         fixedRow(
-                                          column(8,
-                                                 h4("Compare Illinois Data to"),
+                                          column(12,
+                                                 column(2,h4("Compare Illinois Data to")),
+                                                 column(4,selectInput("state_select", "", states,selected="Wisconsin")),
+                                                column(6, radioButtons("radio", h4("View according to"),
+                                                              choices = list("F-scale" = "fscale", "Injuries" = "injuries",
+                                                                             "Losses" = "loss", "Length" = "length", 
+                                                                             "Width" = "width", "Fatalities" = "fatalities"),
+                                                              selected = "fscale",inline=T)),
                                                  tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
-                                                 selectInput("state_select", "", states,selected="Wisconsin"),
+                                                 
                                                  leafletOutput("map_track",height = "1200px"),
                                                  tags$style("input[type='radio']:checked+span{ 
                                                             
@@ -245,30 +251,30 @@ shinyApp(
                                                             input[type='radio']+span{ 
                                                             
                                                             font-size: 24px;
-                                                            }"),
+                                                            }")
                                    
-                                                 radioButtons("radio", h4("View according to"),
-                                                              choices = list("F-scale" = "fscale", "Injuries" = "injuries",
-                                                                             "Losses" = "loss", "Length" = "length", 
-                                                                             "Width" = "width", "Fatalities" = "fatalities"),
-                                                              selected = "fscale",inline=T)
                                                  
-                                                 ),
-                                          column(4,
-                                                 "Table"
-                                          )
-                                        )
+                                                 
+                                                 )
+                                          
+                                        ),
+                                        fixedRow("Put tables here")
                                         
                                ),
-                               column(3,
+                               column(2,
+                                      "Yearly Plots"
+                               ),
+                               column(2,
                                       "Column 2",
                                       fluidRow("Heat Map"),
-                                      plotOutput("HeatMaps",width="600px"),
+                                      plotOutput("HeatMaps",width="1000px",height="700px"),
                                       fluidRow("10 destructive Tornadoes")
                                )
                            )
                            )
                              )),
+                  tabPanel(h2("Analysis"),
+                           h3("About text")),
                   tabPanel(h2("About"),
                            h3("About text")
                            
