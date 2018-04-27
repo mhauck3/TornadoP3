@@ -423,7 +423,13 @@ shinyApp(
                                                      choices = list("24Hr" = 1, "12Hr" = 2),selected = 1)),
                            mainPanel("Analysis Plots")),
                   tabPanel(h2("About"),
-                           h3("About text")
+                           h3("You Spin Me Round is an application made by Pedro Borges, Megan Hauck, Shoaib Khan and Namaswi Chandarana.  It was completed for the spring 2018 course, Visualization and Visual Analytics (CS424) by professor Andy Johnson at the University of Illinois At Chicago ."),
+                           h3("The application visualizes 62,000 tornadoes for the entire US from the year 1950 till 2016 but only about 2,500 tornadoes in IL.It is designed to show in depth data about Tornadoes across the United States, particularly those in Illinois.   There are many features which allow the user to navigate through data about the tornado themselves and the damage they cause."),
+                           HTML("<br>"),
+                           h3("Data Links:"),
+                           HTML("<h3>Data Source: <a href='http://www.spc.noaa.gov/wcm/index.html#data'>http://www.spc.noaa.gov/wcm/index.html#data</a>"),
+                           HTML("<h3>Data Source Description: <a href='http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf'>http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf</a>")
+                           
                            
                   )
   ),
@@ -560,6 +566,8 @@ shinyApp(
                            map_markers = input$radio)
     }
     )
+ 
+    
     
     ###Graduate HeatMap
     output$HeatMaps <- renderPlot({
