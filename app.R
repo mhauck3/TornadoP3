@@ -14,6 +14,18 @@ library(scales)
 library(leaflet)
 library(geosphere)
 library(gridExtra)
+library(maptools)
+
+library(leaflet)
+
+library(raster)
+library(stringi)
+library(data.table)
+#library(sqldf)
+library(dplyr)
+library(lubridate)
+
+
 
 # DATA PRE-PROCESSING
 #Read data
@@ -22,6 +34,19 @@ fatalities_df=read.csv( file = "Dataset/heat_fatalities.csv",header=TRUE)
 injuries_df=read.csv(file = "Dataset/heat_injuries.csv",header=TRUE)
 states_data = fread("Dataset/states.csv")
 
+us<-getData('GADM', country='USA', level=2) 
+ILall<-subset(us,NAME_1=="Illinois")   #One extra county in lake michigan
+t1=ILall@data
+ILall@polygons=ILall@polygons[-c(642-592)]
+ILall@data=ILall@data[-c(642-592), ]
+illinois=ILall@data
+illinois$NAME_2=gsub(" ", "",gsub("\\.", " ", illinois$NAME_2))
+illinois$county=illinois$NAME_2
+illinois$county <- tolower(illinois$county)
+illinois[illinois$county=="saintclair",]$county="stclair"
+
+countydata=read.csv(file = "Dataset/countydata.csv",header=TRUE)
+ILall@data=countydata
 
 #Change adjust loss data 
 data[yr < 1996 & loss == 1, loss := 25/1000000]
@@ -171,7 +196,7 @@ shinyApp(
                   
                   tabPanel(h2("Home"),
                            sidebarLayout(
-                             sidebarPanel(width = 2, h2("Preferences"),
+                             sidebarPanel(width = 1, h2("Preferences"),
                                           
                                           radioButtons("hr", h3("Hour:"),
                                                        choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
@@ -183,8 +208,13 @@ shinyApp(
                                           sliderInput("length_input",label=h3("Length:"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('length')])),width="100%"),
                                           sliderInput("injuries_input",label=h3("Injuries:"), min=0, max=max(data[,c('injuries')]), value = c(0, max(data[,c('injuries')])),width="100%"),
                                           sliderInput("fatalities_input",label=h3("Fatalities:"), min=0, max=max(data[,c('fatalities')]), value = c(0, max(data[,c('fatalities')])),width="100%"),
-                                          sliderInput("loss_input",label=h3("Loss"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
-                                          sliderInput("fscale_input",label=h3("F-Scale"), min=0, max=5, value = c(0, 5),width="100%"), #Ugly range (just to include -9). Need to change this
+                                          sliderInput("loss_input",label=h3("Loss:"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
+                                          checkboxGroupInput("fscale_input", h3("F-scale:"),
+                                                             c("Unknown" = "-9",
+                                                               "0" = "0",
+                                                               "1" = "1",
+                                                               "2"="2",
+                                                               "3"="3","4"="4","5"="5"),inline=T,selected=list("-9", "0", "1", "2","3","4","5")), #Ugly range (just to include -9). Need to change this
                                           tags$style(HTML(".irs-grid-text { font-size: 0px; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
                                           tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red }")),
                                           tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
@@ -194,7 +224,7 @@ shinyApp(
                              
                              mainPanel(
                                
-                               fluidRow(
+                               fluidRow(width = 11,
                                  
                                  column(9,
                                         sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
@@ -207,7 +237,7 @@ shinyApp(
                                                  h4("Compare Illinois Data to"),
                                                  tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
                                                  selectInput("state_select", "", states,selected="Wisconsin"),
-                                                 leafletOutput("map_track",height = "600px"),
+                                                 leafletOutput("map_track",height = "1200px"),
                                                  tags$style("input[type='radio']:checked+span{ 
                                                             
                                                             font-size: 24px;
@@ -421,5 +451,140 @@ shinyApp(
       
     })
     
+    
+    # Label Option 1
+    l1<- mapply(
+      function(county, inj, fatal, losses) {
+        htmltools::HTML(
+          sprintf(
+            "<div style='font-size:12px;height:100px;width:190px;float:left'>
+            <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
+            
+            
+            <div style='width:95%%'>
+            <span style='float:left'>Injuries:</span>
+            <span style='float:right'>%g</span>
+            
+            <br/>
+            <span style='float:left'>Fatalities:</span>
+            <span style='float:right'>%g</span>
+            
+            <br/>
+            <span style='float:left'>Losses (Millions of $):</span>
+            <span style='float:right'>%f</span>
+            
+            <br/>
+            
+            
+            <br/>
+            
+            
+            
+            </div>
+            
+            </div>",
+            
+            
+            county,
+            inj,
+            fatal,
+            losses
+          )
+        )
+      },
+      countydata$county[1:102],
+      ceiling(round(countydata$injured[1:102],2)),
+      ceiling(round(countydata$fatalities[1:102],2)), 
+      round(countydata$losses[1:102],2),
+      SIMPLIFY = F) 
+    
+    
+    # Label Option 2
+    l2 <- mapply(
+      function(county, f0, f1, f2,f3,f4,f5, f9) {
+        htmltools::HTML(
+          sprintf(
+            "<div style='font-size:12px;height:220px;width:90px;float:left'>
+            <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
+            
+            
+            <div style='width:95%%'>
+            <span style='float:left'>F0 Scale:</span>
+            <span style='float:right'>%d</span>
+            
+            <br/>
+            <span style='float:left'>F1 Scale:</span>
+            <span style='float:right'>%d</span>
+            
+            <br/>
+            <span style='float:left'>F2 Scale:</span>
+            <span style='float:right'>%d</span>
+            
+            
+            <br/>
+            <span style='float:left'>F3 Scale:</span>
+            <span style='float:right'>%d</span>
+            
+            <br/>
+            <span style='float:left'>F4 Scale:</span>
+            <span style='float:right'>%d</span>
+            
+            
+            <br/>
+            <span style='float:left'>F5 Scale:</span>
+            <span style='float:right'>%d</span>
+            
+            <br/>
+            <span style='float:left'>Unknown:</span>
+            <span style='float:right'>%d</span>
+            
+            
+            <br/>
+            
+            
+            <br/>
+            
+            
+            <br/>
+            
+            
+            <br/>
+            
+            
+            
+            
+            
+            <br/>
+            
+            
+            <br/>
+            
+            
+            
+            </div>
+            
+            </div>",
+        
+ 
+        county,
+        f0,
+        f1,
+        f2,
+        f3,
+        f4,
+        f5,
+        f9
+      )
+    )
+  },
+  countydata$county[1:102],
+  countydata$f0[1:102],
+  countydata$f1[1:102], 
+  countydata$f2[1:102], 
+  countydata$f3[1:102],
+  countydata$f4[1:102],
+  countydata$f5[1:102],
+  countydata$f9[1:102],
+ SIMPLIFY = F) 
   }
   )
