@@ -554,8 +554,8 @@ shinyApp(
     # C9
     #Function maps tornados by year. Excludes missing coordinates
     output$map_track = renderLeaflet({
-      subset=states_data[State==input$state_select]
-      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+      subset_data=states_data[State==input$state_select]
+      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
                            lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
                            map_markers = input$radio)
     }
