@@ -15,15 +15,9 @@ library(leaflet)
 library(geosphere)
 library(gridExtra)
 library(maptools)
-
-library(leaflet)
-
 library(raster)
 library(stringi)
-library(data.table)
 #library(sqldf)
-library(dplyr)
-library(lubridate)
 
 
 
@@ -113,12 +107,15 @@ states=states_data[,c("State")]
 units = c("", "people", "people", "miles", "miles", "million USD")
 names(units) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 
+#Define Imperial Units
+units_metric = c("", "people", "people", "km", "km", "million USD")
+names(units_metric) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
+
 map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
-                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale"){
-  print(frange)
+                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale", units_set){
   
   state_var = c(state_var1, state_var2)
-  unit = units[[map_markers]]
+  unit = units_set[[map_markers]]
   
   track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
                       year == year_var & 
@@ -166,8 +163,8 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
     setView(-87.987437, 41.913741, zoom = 5) %>%
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
                      options = layersControlOptions(collapsed = FALSE)) %>%
-    addLegend("bottomright", pal = pal, values = track_state$map_marker,
-              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1, suffix = paste(" ",unit))) %>%
+    addLegend(title = paste(map_markers, " (", unit, ")", sep = ""), "bottomright", pal = pal, values = track_state$map_marker,
+              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
     addControl(html = html_legend, position = "bottomleft")
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
@@ -185,10 +182,69 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                  lat = ~lat)
   }
   
-
+  
   return(m)
 }
 
+#Function for B4
+map_track_top10 = function(){
+  unit = units[["fatalities"]]
+  track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
+                      state %in% "IL",
+                    c("tornadoID", "startLon", "startLat","endLat","endLon", "fatalities", "injuries"), with = FALSE]
+  
+  track_data = track_data[order(-fatalities, -injuries), head(.SD,10)]
+  
+  #Normalize data - In order to visualize
+  track_data[, ("map_marker_normal") := (normalize(fatalities)+1)*5]
+  
+  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "fatalities", "injuries", "map_marker_normal"), with = FALSE]
+  track_state_end = track_data[,c("tornadoID", "endLat","endLon", "fatalities", "injuries", "map_marker_normal"), with = FALSE]
+  setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
+  setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
+  track_state = rbind(track_state_start,track_state_end)
+  
+  pal_colors = colorRamp(c("#ff6767", "#400000"))
+  
+  pal <- colorNumeric(
+    palette = pal_colors, 
+    domain = track_state$fatalities)
+  
+  hurricane_icon = makeIcon("hurricane-icon.png",32,20,iconAnchorX = 10, iconAnchorY = 5)
+  html_legend <- "<img src='hurricane-icon.png' style='width:10px;height:10px;'>Tornado End"
+  
+  
+  m = leaflet() %>% 
+    addProviderTiles(providers$CartoDB.Positron, group = "Light") %>%
+    addProviderTiles(providers$Stamen.Toner, group = "Dark") %>%
+    addProviderTiles(providers$OpenStreetMap.Mapnik, group = "City Classic") %>%
+    addProviderTiles(providers$Stamen.Terrain, group = "Topological") %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "Sattelite") %>%
+    setView(-89, 40, zoom = 6) %>%
+    addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
+                     options = layersControlOptions(collapsed = FALSE)) %>%
+    addLegend(title = paste("Fatalities", " (", unit, ")", sep = ""),"bottomright", pal = pal, values = track_state$fatalities,
+              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
+    addControl(html = html_legend, position = "bottomleft")
+  for (i in unique(track_state$tornadoID)) {
+    m <- m %>%
+      addPolylines(data = track_state[tornadoID == i],
+                   lng = ~lon,
+                   lat = ~lat,
+                   col = ~pal(fatalities),
+                   weight = ~(map_marker_normal),
+                   highlightOptions = highlightOptions(color = "white", weight = 3,
+                                                       bringToFront = TRUE),
+                   label = ~paste("Fatalities", ":",fatalities, " ", unit)) %>%
+      addMarkers(data = track_state_end[tornadoID == i], 
+                 icon = hurricane_icon,
+                 lng = ~lon,
+                 lat = ~lat)
+  }
+  
+  
+  return(m)
+}
 
 # Label Option 1
 l1<- mapply(
@@ -343,8 +399,8 @@ shinyApp(
                                                        choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
                                           h2("Filters"),
                                           
-                                          sliderInput("width_input",label=h3("Width (in miles):"), min=0, max=max(data[,c('width')]), value = c(0, max(data[,c('width')])),width="100%"),
-                                          sliderInput("length_input",label=h3("Length (in miles):"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('length')])),width="100%"),
+                                          sliderInput("width_input",label=h3("Width:"), min=0, max=max(data[,c('width')])*1.6, value = c(0, max(data[,c('width')]))*1.6,width="100%"),
+                                          sliderInput("length_input",label=h3("Length:"), min=0, max=max(data[,c('length')])*1.6, value = c(0, max(data[,c('length')]))*1.6,width="100%"),
                                           sliderInput("injuries_input",label=h3("Injuries (no of people):"), min=0, max=max(data[,c('injuries')]), value = c(0, max(data[,c('injuries')])),width="100%"),
                                           sliderInput("fatalities_input",label=h3("Fatalities (no of people):"), min=0, max=max(data[,c('fatalities')]), value = c(0, max(data[,c('fatalities')])),width="100%"),
                                           sliderInput("loss_input",label=h3("Loss(in million USD):"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
@@ -364,26 +420,26 @@ shinyApp(
                              mainPanel(
                                
                                fluidRow(width = 11,
-                                 
-                                 column(8,
-                                        sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
                                         
-                                        tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
+                                        column(8,
+                                               sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1, sep = ""),
+                                               
+                                               tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
                                                         .irs-min {font-size: 20px;font-family: 'arial'; color: white;}")),
-                                        tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
-                                        fixedRow(
-                                          column(12,
-                                                 column(2,h4("Compare Illinois Data to")),
-                                                 column(4,selectInput("state_select", "", states,selected="Wisconsin")),
-                                                column(6, radioButtons("radio", h4("View according to"),
-                                                              choices = list("F-scale" = "fscale", "Injuries" = "injuries",
-                                                                             "Losses" = "loss", "Length" = "length", 
-                                                                             "Width" = "width", "Fatalities" = "fatalities"),
-                                                              selected = "fscale",inline=T)),
-                                                 tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
-                                                 
-                                                 leafletOutput("map_track",height = "1200px"),
-                                                 tags$style("input[type='radio']:checked+span{ 
+                                               tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
+                                               fixedRow(
+                                                 column(12,
+                                                        column(2,h4("Compare Illinois Data to")),
+                                                        column(4,selectInput("state_select", "", states,selected="Wisconsin")),
+                                                        column(6, radioButtons("radio", h4("View according to"),
+                                                                               choices = list("F-scale" = "fscale", "Injuries" = "injuries",
+                                                                                              "Losses" = "loss", "Length" = "length", 
+                                                                                              "Width" = "width", "Fatalities" = "fatalities"),
+                                                                               selected = "fscale",inline=T)),
+                                                        tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
+                                                        
+                                                        leafletOutput("map_track",height = "1200px"),
+                                                        tags$style("input[type='radio']:checked+span{ 
                                                             
                                                             font-size: 24px;
                                                             }
@@ -391,38 +447,41 @@ shinyApp(
                                                             
                                                             font-size: 24px;
                                                             }")
-                                   
-                                                 
-                                                 
+                                                        
+                                                        
+                                                        
                                                  )
-                                          
+                                                 
+                                               ),
+                                               fixedRow("Put tables here")
+                                               
                                         ),
-                                        fixedRow("Put tables here")
-                                        
-                               ),
-                               column(2,
-                                      "Yearly Plots"
-                               ),
-                               column(2,
-                                      
-                                      fluidRow("Heat Map"),
-                                     
-                                     plotOutput("HeatMaps",width="1000px",height="700px"),
-                                     
-                                     radioButtons("heat_map_option", h3("On Hover Details:"),
-                                                  choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
-                                      leafletOutput("Heat_Maps",width="1000px",height="700px"),
-                                      fluidRow("10 destructive Tornadoes")
+                                        column(2,
+                                               "Yearly Plots"
+                                        ),
+                                        column(2,
+                                               
+                                               fluidRow("Heat Map"),
+                                               
+                                               plotOutput("HeatMaps",width="1000px",height="700px"),
+                                               
+                                               radioButtons("heat_map_option", h3("On Hover Details:"),
+                                                            choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
+                                               leafletOutput("Heat_Maps",width="1000px",height="700px"),
+                                               fluidRow("10 destructive Tornadoes")
+                                        )
                                )
-                           )
-                           )
-                             )),
+                             )
+                           )),
                   tabPanel(h2("Analysis"),
                            sidebarPanel(width = 1, h2("Preferences"),
                                         
                                         radioButtons("hr", h3("Hour:"),
                                                      choices = list("24Hr" = 1, "12Hr" = 2),selected = 1)),
-                           mainPanel("Analysis Plots")),
+                           mainPanel("Analysis Plots",
+                                     fluidRow(
+                                       leafletOutput("map_top10")
+                                     ))),
                   tabPanel(h2("About"),
                            h3("You Spin Me Round is an application made by Pedro Borges, Megan Hauck, Shoaib Khan and Namaswi Chandarana.  It was completed for the spring 2018 course, Visualization and Visual Analytics (CS424) by professor Andy Johnson at the University of Illinois At Chicago ."),
                            h3("The application visualizes 62,000 tornadoes for the entire US from the year 1950 till 2016 but only about 2,500 tornadoes in IL.It is designed to show in depth data about Tornadoes across the United States, particularly those in Illinois.   There are many features which allow the user to navigate through data about the tornado themselves and the damage they cause."),
@@ -560,15 +619,25 @@ shinyApp(
     
     # C9
     #Function maps tornados by year. Excludes missing coordinates
+    
     output$map_track = renderLeaflet({
       subset_data=states_data[State==input$state_select]
-      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
-                           lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                           map_markers = input$radio)
-    }
-    )
- 
+      if(input$units == 1){
+        map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+                             lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
+                             map_markers = input$radio, units_set = units)
+      }
+      else{
+        map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+                             lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
+                             map_markers = input$radio, units_set  = units_metric)
+      }
+    })
     
+    #Function for B4
+    output$map_top10 = renderLeaflet({
+      map_track_top10()
+    })
     
     ###Graduate HeatMap
     output$HeatMaps <- renderPlot({
@@ -616,7 +685,7 @@ shinyApp(
     output$Heat_Maps<-renderLeaflet(
       
       #  if(input$heat_map_option==1){
-       #   ILall@data$hoverText= l1}else{ILall@data$hoverText=l2},
+      #   ILall@data$hoverText= l1}else{ILall@data$hoverText=l2},
       #l=l1,
       leaflet() %>% 
         addTiles() %>% 
@@ -639,4 +708,4 @@ shinyApp(
     
     
   }
-  )
+)
