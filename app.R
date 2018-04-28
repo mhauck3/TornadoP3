@@ -75,7 +75,6 @@ data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
 #REMOVE BAD DATA
-data = data[!fscale == -9,]
 data$fscale = factor(data$fscale)
 
 # HELPER FUNCTIONS
@@ -116,7 +115,7 @@ names(units) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 
 map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
                                 irange = c(0,1800), fatrange = c(0,160), map_markers="fscale"){
-  frange = seq(min(frange), max(frange))
+  print(frange)
   
   state_var = c(state_var1, state_var2)
   unit = units[[map_markers]]
