@@ -133,7 +133,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
   setnames(track_data, map_markers, "map_marker")
   
   #Normalize data - In order to visualize
-  track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*3]
+  track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*5]
   
   track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "map_marker", "map_marker_normal"), with = FALSE]
   track_state_end = track_data[,c("tornadoID", "endLat","endLon", "map_marker", "map_marker_normal"), with = FALSE]
@@ -177,7 +177,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                    lat = ~lat,
                    col = ~pal(map_marker),
                    weight = ~(map_marker_normal),
-                   highlightOptions = highlightOptions(color = "white", weight = 2,
+                   highlightOptions = highlightOptions(color = "white", weight = 3,
                                                        bringToFront = TRUE),
                    label = ~paste(map_markers, ":",map_marker, " ", unit)) %>%
       addMarkers(data = track_state_end[tornadoID == i], 
