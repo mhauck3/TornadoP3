@@ -15,15 +15,20 @@ library(leaflet)
 library(geosphere)
 library(gridExtra)
 library(maptools)
+library(leaflet)
 library(raster)
 library(stringi)
-#library(sqldf)
-
-
+library(data.table)
+library(dplyr)
+library(lubridate)
+library(ggthemes)
+library(plotly)
 
 # DATA PRE-PROCESSING
 #Read data
 data = fread("Dataset/allTornadoes.csv")
+fipsCountyMap = fread("Dataset/fipsCountyMap.csv")
+stateCoordinates = fread("Dataset/stateCoordinates.csv")
 fatalities_df=read.csv( file = "Dataset/heat_fatalities.csv",header=TRUE)
 injuries_df=read.csv(file = "Dataset/heat_injuries.csv",header=TRUE)
 states_data = fread("Dataset/states.csv")
@@ -69,6 +74,7 @@ data[, tornadoID := paste(year,tornadoNumber, sep = "")]
 data[, tornadoID := factor(tornadoID)]
 
 #REMOVE BAD DATA
+data = data[!fscale == -9,]
 data$fscale = factor(data$fscale)
 
 # HELPER FUNCTIONS
@@ -107,15 +113,12 @@ states=states_data[,c("State")]
 units = c("", "people", "people", "miles", "miles", "million USD")
 names(units) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 
-#Define Imperial Units
-units_metric = c("", "people", "people", "km", "km", "million USD")
-names(units_metric) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
-
 map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
-                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale", units_set){
+                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale"){
+  frange = seq(min(frange), max(frange))
   
   state_var = c(state_var1, state_var2)
-  unit = units_set[[map_markers]]
+  unit = units[[map_markers]]
   
   track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
                       year == year_var & 
@@ -129,7 +132,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
   setnames(track_data, map_markers, "map_marker")
   
   #Normalize data - In order to visualize
-  track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*5]
+  track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*3]
   
   track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "map_marker", "map_marker_normal"), with = FALSE]
   track_state_end = track_data[,c("tornadoID", "endLat","endLon", "map_marker", "map_marker_normal"), with = FALSE]
@@ -163,8 +166,8 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
     setView(-87.987437, 41.913741, zoom = 5) %>%
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
                      options = layersControlOptions(collapsed = FALSE)) %>%
-    addLegend(title = paste(map_markers, " (", unit, ")", sep = ""), "bottomright", pal = pal, values = track_state$map_marker,
-              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
+    addLegend("bottomright", pal = pal, values = track_state$map_marker,
+              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1, suffix = paste(" ",unit))) %>%
     addControl(html = html_legend, position = "bottomleft")
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
@@ -173,7 +176,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                    lat = ~lat,
                    col = ~pal(map_marker),
                    weight = ~(map_marker_normal),
-                   highlightOptions = highlightOptions(color = "white", weight = 3,
+                   highlightOptions = highlightOptions(color = "white", weight = 2,
                                                        bringToFront = TRUE),
                    label = ~paste(map_markers, ":",map_marker, " ", unit)) %>%
       addMarkers(data = track_state_end[tornadoID == i], 
@@ -182,69 +185,10 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                  lat = ~lat)
   }
   
-  
+
   return(m)
 }
 
-#Function for B4
-map_track_top10 = function(){
-  unit = units[["fatalities"]]
-  track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
-                      state %in% "IL",
-                    c("tornadoID", "startLon", "startLat","endLat","endLon", "fatalities", "injuries"), with = FALSE]
-  
-  track_data = track_data[order(-fatalities, -injuries), head(.SD,10)]
-  
-  #Normalize data - In order to visualize
-  track_data[, ("map_marker_normal") := (normalize(fatalities)+1)*5]
-  
-  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "fatalities", "injuries", "map_marker_normal"), with = FALSE]
-  track_state_end = track_data[,c("tornadoID", "endLat","endLon", "fatalities", "injuries", "map_marker_normal"), with = FALSE]
-  setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
-  setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
-  track_state = rbind(track_state_start,track_state_end)
-  
-  pal_colors = colorRamp(c("#ff6767", "#400000"))
-  
-  pal <- colorNumeric(
-    palette = pal_colors, 
-    domain = track_state$fatalities)
-  
-  hurricane_icon = makeIcon("hurricane-icon.png",32,20,iconAnchorX = 10, iconAnchorY = 5)
-  html_legend <- "<img src='hurricane-icon.png' style='width:10px;height:10px;'>Tornado End"
-  
-  
-  m = leaflet() %>% 
-    addProviderTiles(providers$CartoDB.Positron, group = "Light") %>%
-    addProviderTiles(providers$Stamen.Toner, group = "Dark") %>%
-    addProviderTiles(providers$OpenStreetMap.Mapnik, group = "City Classic") %>%
-    addProviderTiles(providers$Stamen.Terrain, group = "Topological") %>%
-    addProviderTiles(providers$Esri.WorldImagery, group = "Sattelite") %>%
-    setView(-89, 40, zoom = 6) %>%
-    addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
-                     options = layersControlOptions(collapsed = FALSE)) %>%
-    addLegend(title = paste("Fatalities", " (", unit, ")", sep = ""),"bottomright", pal = pal, values = track_state$fatalities,
-              opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
-    addControl(html = html_legend, position = "bottomleft")
-  for (i in unique(track_state$tornadoID)) {
-    m <- m %>%
-      addPolylines(data = track_state[tornadoID == i],
-                   lng = ~lon,
-                   lat = ~lat,
-                   col = ~pal(fatalities),
-                   weight = ~(map_marker_normal),
-                   highlightOptions = highlightOptions(color = "white", weight = 3,
-                                                       bringToFront = TRUE),
-                   label = ~paste("Fatalities", ":",fatalities, " ", unit)) %>%
-      addMarkers(data = track_state_end[tornadoID == i], 
-                 icon = hurricane_icon,
-                 lng = ~lon,
-                 lat = ~lat)
-  }
-  
-  
-  return(m)
-}
 
 # Label Option 1
 l1<- mapply(
@@ -390,7 +334,7 @@ shinyApp(
                   
                   tabPanel(h2("Home"),
                            sidebarLayout(
-                             sidebarPanel(width = 1, h2("Preferences"),
+                             sidebarPanel(width = 3, h2("Preferences"),
                                           
                                           radioButtons("hr", h3("Hour:"),
                                                        choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
@@ -398,12 +342,11 @@ shinyApp(
                                           radioButtons("units", h3("Units:"),
                                                        choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
                                           h2("Filters"),
-                                          
-                                          sliderInput("width_input",label=h3("Width:"), min=0, max=max(data[,c('width')])*1.6, value = c(0, max(data[,c('width')]))*1.6,width="100%"),
-                                          sliderInput("length_input",label=h3("Length:"), min=0, max=max(data[,c('length')])*1.6, value = c(0, max(data[,c('length')]))*1.6,width="100%"),
-                                          sliderInput("injuries_input",label=h3("Injuries (no of people):"), min=0, max=max(data[,c('injuries')]), value = c(0, max(data[,c('injuries')])),width="100%"),
-                                          sliderInput("fatalities_input",label=h3("Fatalities (no of people):"), min=0, max=max(data[,c('fatalities')]), value = c(0, max(data[,c('fatalities')])),width="100%"),
-                                          sliderInput("loss_input",label=h3("Loss(in million USD):"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
+                                          sliderInput("width_input",label=h3("Width:"), min=0, max=max(data[,c('width')]), value = c(0, max(data[,c('width')])),width="100%"),
+                                          sliderInput("length_input",label=h3("Length:"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('length')])),width="100%"),
+                                          sliderInput("injuries_input",label=h3("Injuries:"), min=0, max=max(data[,c('injuries')]), value = c(0, max(data[,c('injuries')])),width="100%"),
+                                          sliderInput("fatalities_input",label=h3("Fatalities:"), min=0, max=max(data[,c('fatalities')]), value = c(0, max(data[,c('fatalities')])),width="100%"),
+                                          sliderInput("loss_input",label=h3("Loss:"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
                                           checkboxGroupInput("fscale_input", h3("F-scale:"),
                                                              c("Unknown" = "-9",
                                                                "0" = "0",
@@ -420,26 +363,26 @@ shinyApp(
                              mainPanel(
                                
                                fluidRow(width = 11,
+                                 
+                                 column(8,
+                                        sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1),
                                         
-                                        column(8,
-                                               sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1, sep = ""),
-                                               
-                                               tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
+                                        tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
                                                         .irs-min {font-size: 20px;font-family: 'arial'; color: white;}")),
-                                               tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
-                                               fixedRow(
-                                                 column(12,
-                                                        column(2,h4("Compare Illinois Data to")),
-                                                        column(4,selectInput("state_select", "", states,selected="Wisconsin")),
-                                                        column(6, radioButtons("radio", h4("View according to"),
-                                                                               choices = list("F-scale" = "fscale", "Injuries" = "injuries",
-                                                                                              "Losses" = "loss", "Length" = "length", 
-                                                                                              "Width" = "width", "Fatalities" = "fatalities"),
-                                                                               selected = "fscale",inline=T)),
-                                                        tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
-                                                        
-                                                        leafletOutput("map_track",height = "1200px"),
-                                                        tags$style("input[type='radio']:checked+span{ 
+                                        tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
+                                        fixedRow(
+                                          column(12,
+                                                 column(2,h4("Compare Illinois Data to")),
+                                                 column(4,selectInput("state_select", "", states,selected="Wisconsin")),
+                                                column(6, radioButtons("radio", h4("View according to"),
+                                                              choices = list("F-scale" = "fscale", "Injuries" = "injuries",
+                                                                             "Losses" = "loss", "Length" = "length", 
+                                                                             "Width" = "width", "Fatalities" = "fatalities"),
+                                                              selected = "fscale",inline=T)),
+                                                 tags$style(type='text/css', ".selectize-input { font-size: 28px; line-height: 28px;} .selectize-dropdown { font-size: 25px; line-height: 25px; } "),
+                                                 
+                                                 leafletOutput("map_track",height = "1200px"),
+                                                 tags$style("input[type='radio']:checked+span{ 
                                                             
                                                             font-size: 24px;
                                                             }
@@ -447,41 +390,74 @@ shinyApp(
                                                             
                                                             font-size: 24px;
                                                             }")
-                                                        
-                                                        
-                                                        
-                                                 )
+                                   
                                                  
-                                               ),
-                                               fixedRow("Put tables here")
-                                               
+                                                 
+                                                 )
+                                          
                                         ),
-                                        column(2,
-                                               "Yearly Plots"
-                                        ),
-                                        column(2,
-                                               
-                                               fluidRow("Heat Map"),
-                                               
-                                               plotOutput("HeatMaps",width="1000px",height="700px"),
-                                               
-                                               radioButtons("heat_map_option", h3("On Hover Details:"),
-                                                            choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
-                                               leafletOutput("Heat_Maps",width="1000px",height="700px"),
-                                               fluidRow("10 destructive Tornadoes")
-                                        )
+                                        fixedRow("Put tables here")
+                                        
+                               ),
+                               column(2,
+                                      "Yearly Plots"
+                               ),
+                               column(2,
+                                      
+                                      fluidRow("Heat Map"),
+                                     
+                                     plotOutput("HeatMaps",width="1000px",height="700px"),
+                                     
+                                     radioButtons("heat_map_option", h3("On Hover Details:"),
+                                                  choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
+                                      leafletOutput("Heat_Maps",width="1000px",height="700px"),
+                                      fluidRow("10 destructive Tornadoes")
                                )
-                             )
-                           )),
+                           )
+                           )
+                             )),
                   tabPanel(h2("Analysis"),
-                           sidebarPanel(width = 1, h2("Preferences"),
+                           sidebarPanel(width = 3, h2("Preferences"),
                                         
                                         radioButtons("hr", h3("Hour:"),
-                                                     choices = list("24Hr" = 1, "12Hr" = 2),selected = 1)),
+                                                     choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
+                                        checkboxInput("showTables",label = h4("Tables"), value = FALSE),
+                                        checkboxInput("showGraphs",label = h4("Graphs"), value = TRUE),
+                                        radioButtons("radioDamages", h4("View according to"),
+                                                     choices = list("Injuries" = "Injuries",
+                                                                    "Losses" = "Losses",
+                                                                    "Fatalities" = "Fatalities"),
+                                                     selected = "Injuries",inline=T),
+                                        h2("Filters"),
+                                        # uiOutput("SliderWidget"),
+                                        sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")
+                           )),
+                           
                            mainPanel("Analysis Plots",
-                                     fluidRow(
-                                       leafletOutput("map_top10")
-                                     ))),
+                                     fluidPage(width= 11,
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c4table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4count")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4perc")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c1table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1count")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1perc")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c2table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2count")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2perc")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c3table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3count")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3perc")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c5table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c5")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c6table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c6")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c7table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c7")),
+                                       conditionalPanel(condition = "input.showTables == true",dataTableOutput("c8table")),
+                                       conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c8"))
+                                       )
+                                     )
+                           ),
                   tabPanel(h2("About"),
                            h3("You Spin Me Round is an application made by Pedro Borges, Megan Hauck, Shoaib Khan and Namaswi Chandarana.  It was completed for the spring 2018 course, Visualization and Visual Analytics (CS424) by professor Andy Johnson at the University of Illinois At Chicago ."),
                            h3("The application visualizes 62,000 tornadoes for the entire US from the year 1950 till 2016 but only about 2,500 tornadoes in IL.It is designed to show in depth data about Tornadoes across the United States, particularly those in Illinois.   There are many features which allow the user to navigate through data about the tornado themselves and the damage they cause."),
@@ -494,150 +470,358 @@ shinyApp(
                   )
   ),
   server = function(input, output) {
-    # C1
-    tornadoesByYear = data %>%
-      group_by(year, fscale) %>%
-      summarize(tornadoCount = n()) %>%
-      group_by(year) %>%
-      mutate(annualTornadoCount = sum(tornadoCount)) %>%
-      mutate(percTornadoByFscale = tornadoCount/annualTornadoCount) %>%
-      data.table()
     
-    tornadoesOverall = nrow(data)
+    # C1
+    # data = fread("Dataset/allTornadoes.csv")
+    # data = data %>% filter(st == "IL") %>% data.table()
+    
+
+
+  tornadoesByMagnitudeByYear = data %>%
+      filter(state == "IL") %>%
+      group_by(year, magnitude = fscale) %>%
+      summarize(tornadoeCount = n()) %>%
+      group_by(year) %>%
+      mutate(annualTornadoeCount = sum(tornadoeCount)) %>%
+      mutate(`Percentage Tornadoes` = tornadoeCount/annualTornadoeCount) %>%
+      data.table()
+  
+  output$c1table = renderDataTable(formatStyle(datatable(tornadoesByMagnitudeByYear %>%
+                                     mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`))),
+                                     color = "black",columns = T)
+  )
+  
     # nrow(data)
     # ncol(data)
     # dim(data)[1]
     # dim(data)[2]
     
-    data %>%
-      group_by(fscale) %>%
-      summarize(totalCount = n())
-    
-    ggplot(tornadoesByYear, aes(x = year, y = tornadoCount, color = fscale)) + geom_bar(stat = "identity", position = 'dodge')
-    
-    ggplot(tornadoesByYear, aes(x = year, y = percTornadoByFscale, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position = 'dodge') #sans identity, we get row count -- yikes!
-    
+output$c1count = renderPlotly({    
+  ggplot(tornadoesByMagnitudeByYear, aes(x = factor(year), y = tornadoeCount, fill = magnitude)) +
+      geom_bar(stat = "identity", position = 'dodge') + theme_solarized(light = FALSE) + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 0))
+  ggplotly()
+  })
+  output$c1perc = renderPlotly({
+    ggplot(tornadoesByMagnitudeByYear, aes(x = factor(year), y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      geom_bar(stat = "identity", position = 'stack', color = "black") +theme_solarized(light = FALSE) + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 0))+ scale_y_continuous(labels = percent) 
+    ggplotly()
+  }
+  )
     # C2
-    tornadoesByMonth = data %>%
-      group_by(month, fscale) %>%
+    tornadoesByMagnitudeByMonth = data %>%
+      filter(state == "IL") %>%
+      group_by(month, magnitude = fscale) %>%
       summarize(tornadoCount = n()) %>%
       group_by(month) %>%
       mutate(monthlyTornadoCount = sum(tornadoCount)) %>%
-      mutate(percTornadoByFscale = tornadoCount/monthlyTornadoCount) %>%
+      mutate(`Percentage Tornadoes` = tornadoCount/monthlyTornadoCount) %>%
       data.table()
     
-    ggplot(tornadoesByMonth, aes(x = month, y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
+    output$c2table = renderDataTable(formatStyle(tornadoesByMagnitudeByMonth %>%
+                                       mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`)) %>%
+                                         datatable(),
+                                       color = "black",columns = T)
+    )
     
+    output$c2count = renderPlotly( {   
+      ggplot(tornadoesByMagnitudeByMonth, aes(x = factor(month), y = tornadoCount, fill = magnitude)) + 
+        theme_solarized(light = FALSE) + 
+      geom_bar(stat = "identity", position ='dodge', color = "black")
+      ggplotly()
+    }
+    )
+    output$c2perc = renderPlotly({
+    ggplot(tornadoesByMagnitudeByMonth, aes(x = factor(month), y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      geom_bar(stat = "identity", position = 'stack', color = "black") + 
+        theme_solarized(light = FALSE) + 
+        scale_y_continuous(labels = percent)
+      ggplotly()
+    }
+    )
     # C3 
-    tornadoesByHour = data %>%
-      mutate(hour = as.numeric(substr(time,start = 1, stop = 2))) %>%
-      group_by(hour, fscale) %>%
+    tornadoesByMagnitudeByHour = data %>%
+      filter(state == "IL") %>%
+      mutate(hour = substr(time, 1,2)) %>%
+      group_by(hour, magnitude = fscale) %>%
       summarize(tornadoCount = n()) %>%
       group_by(hour) %>%
       mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
-      mutate(percTornadoByFscale = tornadoCount/hourlyTornadoCount) %>%
+      mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
       data.table()
     
-    ggplot(tornadoesByHour, aes(x = factor(hour), y = tornadoCount, color = fscale, fill = fscale)) + geom_bar(stat = "identity", position ='dodge')
-    
+    output$c3table = renderDataTable(formatStyle(tornadoesByMagnitudeByHour %>%
+                                       mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`))%>%
+                                         datatable(),
+                                       color = "black",columns = T)
+    )
+    output$c3count = renderPlotly({
+    ggplot(tornadoesByMagnitudeByHour, aes(x = factor(hour), y = tornadoCount, fill = magnitude)) + 
+        theme_solarized(light = FALSE) + 
+      geom_bar(stat = "identity", position ='dodge',color = "black")
+      ggplotly()
+    }
+    )
+    output$c3perc = renderPlotly({
+    ggplot(tornadoesByMagnitudeByHour, aes(x = factor(hour), y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      geom_bar(stat = "identity", position = 'stack', color = "black")+ 
+        theme_solarized(light = FALSE) + 
+        scale_y_continuous(labels = percent)
+      ggplotly()
+    }
+    )
     # C4
+    stateCoordinates
     data = data %>% 
+      merge(stateCoordinates[,.(state = StateCode,
+                                stateLat = Latitude,
+                                stateLon = Longitude)], by = "state", all.x = T) %>%
       mutate(distChicagoStrt = getGeoDist(startlat = 41.8781, startlon = -87.6298,
                                           endlat = startLat, endlon = startLon),
              distChicagoEnd = getGeoDist(startlat = 41.8781, startlon = -87.6298,
-                                         endlat = endLat, endlon = endLon)) %>% 
+                                         endlat = endLat, endlon = endLon),
+             distChicagoState = getGeoDist(startlat = 41.8781, startlon = -87.6298,
+                                         endlat = stateLat, endlon = stateLon)) %>% 
       data.table()
     
-    data$distChicago = apply(data[,.(distChicagoStrt, distChicagoEnd)], MARGIN = 1, FUN = min)
-    
+    data$distChicago = apply(data[,.(distChicagoStrt, distChicagoEnd, distChicagoState)], MARGIN = 1, FUN = min)
+    # output$maxDistPossible= renderText(max(data$distChicago))
+  #   SlideMax = max(data$distChicago)
+  #   SlideMin = min(data$distChicago)
+  #   
+  #   output$SliderWidget <- renderUI({
+  #   sliderInput("Slider1","",min = SlideMin,max = SlideMax,value = c(1000))
+  # })
     data = data %>%
-      mutate(distChicagoBin = ifelse(distChicago<100,"< 100 km", ifelse(distChicago<200,"100 - 200 km", ifelse(distChicago < 400, "200 - 400 km", "> 400 km")))) %>%
+      mutate(distChicagoBin = ifelse(distChicago<300,"< 300 km", ifelse(distChicago<1000,"300 - 1000 km", ifelse(distChicago < 2000, "1000 - 2000 km", "> 2000 km")))) %>%
       data.table()
     
-    getBinInfo = function(distBin = c("< 100 km","100 - 200 km", "200 - 400 km","> 400 km")){
-      binData = data %>%
-        filter(distChicagoBin %in% distBin)
-      binData
-    }
+    output$c4table = renderDataTable({
+      min = input$distanceFromChicago_input[1]
+      max = input$distanceFromChicago_input[2]
+      formatStyle(data %>%
+         # filter(state == "IL") %>%
+         filter(distChicago >= min & distChicago <=max) %>%
+         # mutate(hour = substr(time, 1,2)) %>%
+         group_by(magnitude = fscale) %>%
+         summarize(tornadoCount = n()) %>%
+         ungroup() %>%
+         mutate(totalTornadoCount = sum(tornadoCount)) %>%
+         mutate(`Percentage Tornadoes` = percent(tornadoCount/totalTornadoCount))%>%
+           datatable(),
+         color = "black",columns = T)
+      
+      })
     
-    binRecords = getBinInfo(distBin = "< 100 km")
+    output$c4count = renderPlotly({
+      
+      min = input$distanceFromChicago_input[1]
+      max = input$distanceFromChicago_input[2]
+      
+      tornadoesByMagnitudeByDistance = data %>%
+        # filter(state == "IL") %>%
+        filter(distChicago >= min & distChicago <=max) %>%
+        # mutate(hour = substr(time, 1,2)) %>%
+        group_by(magnitude = fscale) %>%
+        summarize(tornadoCount = n()) %>%
+        ungroup() %>%
+        mutate(totalTornadoCount = sum(tornadoCount)) %>%
+        mutate(`Percentage Tornadoes` = tornadoCount/totalTornadoCount) %>%
+        data.table()
+      
+    ggplot(tornadoesByMagnitudeByDistance, aes(x = magnitude, y = tornadoCount, fill = magnitude)) +
+      geom_bar(color = "black",stat = "identity", position ='dodge') +
+      theme_solarized(light = FALSE) 
+    ggplotly()
+    })
+    
+    output$c4perc = renderPlotly({
+      min = input$distanceFromChicago_input[1]
+      max = input$distanceFromChicago_input[2]
+      tornadoesByMagnitudeByDistance = data %>%
+        # filter(state == "IL") %>%
+        filter(distChicago >= min & distChicago <=max) %>%
+        # mutate(hour = substr(time, 1,2)) %>%
+        group_by(magnitude = fscale) %>%
+        summarize(tornadoCount = n()) %>%
+        ungroup() %>%
+        mutate(totalTornadoCount = sum(tornadoCount)) %>%
+        mutate(`Percentage Tornadoes` = tornadoCount/totalTornadoCount) %>%
+        data.table()
+      
+    ggplot(tornadoesByMagnitudeByDistance, aes(x = magnitude, y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      geom_bar(stat = "identity", color = "black") + 
+      scale_y_continuous(labels = percent) +
+      theme_solarized(light = FALSE)
+    ggplotly()
+    })
+    
     
     # C5
     damagesByYear = data %>%
       group_by(year) %>%
-      summarize(damagesInjuries = sum(injuries),
-                damagesFatalities = sum(fatalities),
-                damagesLoss = sum(loss)) %>%
+      summarize(damagesInjuries = sum(injuries, na.rm = T),
+                damagesFatalities = sum(fatalities,na.rm = T),
+                damagesLoss = sum(loss, na.rm = T)) %>%
       data.table()
     
-    ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + geom_bar(stat = "identity")
     
-    ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + geom_bar(stat = "identity")
+    output$c5table = renderDataTable(formatStyle(damagesByYear%>%
+                                                   datatable(),
+                                                 color = "black",columns = T)
+    )
+    
+    output$c5 = renderPlotly({
+    selectedDamage = input$radioDamages
+    if(selectedDamage == "Injuries"){
+    ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + 
+        geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    } else if (selectedDamage == "Fatalities"){
+    ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + 
+        geom_bar(stat = "identity",fill = "seagreen3", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    } else if (selectedDamage == "Losses"){
+      ggplot(damagesByYear, aes(x = year, y = damagesLoss)) + 
+        geom_bar(stat = "identity", fill = "tomato3", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    }
+    ggplotly()
+    })
     
     # C6
     damagesByMonth = data %>%
       group_by(month) %>%
-      summarize(damagesInjuries = sum(injuries),
-                damagesFatalities = sum(fatalities),
-                damagesLoss = sum(loss)) %>%
+      summarize(damagesInjuries = sum(injuries, na.rm = T),
+                damagesFatalities = sum(fatalities,na.rm = T),
+                damagesLoss = sum(loss, na.rm = T)) %>%
       data.table()
     
-    ggplot(damagesByMonth, aes(x = factor(month), y = damagesInjuries)) + geom_bar(stat = "identity")
+    output$c6table = renderDataTable(formatStyle(damagesByMonth%>%
+                                                   datatable(),
+                                                 color = "black",columns = T)
+    )
     
-    ggplot(damagesByMonth, aes(x = factor(month), y = damagesFatalities)) + geom_bar(stat = "identity")
-    
-    ggplot(damagesByMonth, aes(x = factor(month), y = damagesLoss)) + geom_bar(stat = "identity")
+    output$c6= renderPlotly({
+    selectedDamage = input$radioDamages
+    if(selectedDamage == "Injuries"){
+      ggplot(damagesByMonth, aes(x = month, y = damagesInjuries)) + 
+        geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+        theme_solarized(light = FALSE) + 
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    } else if (selectedDamage == "Fatalities"){
+      ggplot(damagesByMonth, aes(x = month, y = damagesFatalities)) + 
+        geom_bar(stat = "identity",fill = "seagreen3", color = "black") +
+        theme_solarized(light = FALSE) + 
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    } else if (selectedDamage == "Losses"){
+      ggplot(damagesByMonth, aes(x = month, y = damagesLoss)) + 
+        geom_bar(stat = "identity", fill = "tomato3", color = "black") +
+        theme_solarized(light = FALSE) + 
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    }
+    ggplotly()
+    })
     
     # C7
     
     damagesByHour = data %>%
-      mutate(hour = substr(time,1,2)) %>%
+      mutate(hour = substr(time, 1,2)) %>%
       group_by(hour) %>%
-      summarize(damagesInjuries = sum(injuries),
-                damagesFatalities = sum(fatalities),
-                damagesLoss = sum(loss)) %>%
+      summarize(damagesInjuries = sum(injuries, na.rm = T),
+                damagesFatalities = sum(fatalities,na.rm = T),
+                damagesLoss = sum(loss, na.rm = T)) %>%
       data.table()
     
-    ggplot(damagesByHour, aes(x = factor(hour), y = damagesInjuries)) + geom_bar(stat = "identity")
+    output$c7table = renderDataTable(formatStyle(damagesByHour%>%
+                                                   datatable(),
+                                                 color = "black",columns = T)
+    )
     
-    ggplot(damagesByHour, aes(x = factor(hour), y = damagesFatalities)) + geom_bar(stat = "identity")
-    
-    ggplot(damagesByHour, aes(x = factor(hour), y = damagesLoss)) + geom_bar(stat = "identity")
+    output$c7 = renderPlotly({
+    selectedDamage = input$radioDamages
+    if(selectedDamage == "Injuries"){
+      ggplot(damagesByHour, aes(x = hour, y = damagesInjuries)) + 
+        geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    } else if (selectedDamage == "Fatalities"){
+      ggplot(damagesByHour, aes(x = hour, y = damagesFatalities)) + 
+        geom_bar(stat = "identity",fill = "seagreen3", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    } else if (selectedDamage == "Losses"){
+      ggplot(damagesByHour, aes(x = hour, y = damagesLoss)) + 
+        geom_bar(stat = "identity", fill = "tomato3", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90, hjust = 0))
+    }
+    ggplotly()
+    })
     
     # C8
+    countyTornadoInfo = data %>% filter(state == "IL") %>% data.frame()
+    countyTornadoInfo = rbind(countyTornadoInfo %>% 
+                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips1st),
+                              countyTornadoInfo %>% 
+                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips2nd),
+                              countyTornadoInfo %>% 
+                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips3rd),
+                              countyTornadoInfo %>% 
+                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips4th)) %>% 
+      filter(fipsCounty != 0) %>%
+      mutate(fipsComplete1 = sprintf("%03d",fipsCounty),
+             fipsComplete = paste0(as.character(fips),fipsComplete1)) 
+      # merge(fipsCountyMap[,.(county = Name,fipsComplete = as.numeric(FIPS))], by = "fipsComplete", all.x = T) %>%
+      # filter(!is.na(county))
     
-    tornadoesByCounty = data %>%
-      group_by(fips) %>%
+    # library(dplyr)
+    
+    tornadoesByCounty = countyTornadoInfo %>%
+      group_by(county = fipsComplete) %>%
       summarize(tornadoCount = n()) %>%
       arrange(-tornadoCount) %>% 
       # mutate(fips = as.factor(fips)) %>%
       data.table()
     
-    #ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
+    output$c8table = renderDataTable(formatStyle(tornadoesByCounty%>%
+                                                   datatable(),
+                                                 color = "black",columns = T)
+    )
     
-    ggplot(tornadoesByCounty, aes(x = reorder(fips, -tornadoCount), y = tornadoCount)) + geom_bar(stat = "identity")
+    #ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
+    output$c8 = renderPlotly({
+    ggplot(tornadoesByCounty, aes(x = reorder(county, tornadoCount), y = tornadoCount)) + 
+        geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+        theme_solarized(light = FALSE) + 
+        
+        theme(axis.text.x = element_text(angle = 90),text  = element_text(size = 5))
+    ggplotly()
+    }
+    )
+    
     
     # C9
     #Function maps tornados by year. Excludes missing coordinates
-    
     output$map_track = renderLeaflet({
       subset_data=states_data[State==input$state_select]
-      if(input$units == 1){
-        map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
-                             lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                             map_markers = input$radio, units_set = units)
-      }
-      else{
-        map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
-                             lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                             map_markers = input$radio, units_set  = units_metric)
-      }
-    })
+      map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+                           lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
+                           map_markers = input$radio)
+    }
+    )
+ 
     
-    #Function for B4
-    output$map_top10 = renderLeaflet({
-      map_track_top10()
-    })
     
     ###Graduate HeatMap
     output$HeatMaps <- renderPlot({
@@ -685,7 +869,7 @@ shinyApp(
     output$Heat_Maps<-renderLeaflet(
       
       #  if(input$heat_map_option==1){
-      #   ILall@data$hoverText= l1}else{ILall@data$hoverText=l2},
+       #   ILall@data$hoverText= l1}else{ILall@data$hoverText=l2},
       #l=l1,
       leaflet() %>% 
         addTiles() %>% 
@@ -708,4 +892,4 @@ shinyApp(
     
     
   }
-)
+  )
