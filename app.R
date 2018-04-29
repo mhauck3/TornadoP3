@@ -120,6 +120,8 @@ names(units) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 units_metric = c("", "people", "people", "km", "km", "million USD")
 names(units_metric) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 
+
+
 map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
                                 irange = c(0,1800), fatrange = c(0,160), map_markers="fscale", units_set){
   
@@ -762,9 +764,9 @@ shinyApp(
     # C6
     damagesByMonth = data %>%
       group_by(month) %>%
-      summarize(damagesInjuries = sum(injuries, na.rm = T),
-                damagesFatalities = sum(fatalities,na.rm = T),
-                damagesLoss = sum(loss, na.rm = T)) %>%
+      summarize(damagesInjuries = sum(injuries),
+                damagesFatalities = sum(fatalities),
+                damagesLoss = sum(loss)) %>%
       data.table()
     
     output$c6table = renderDataTable(formatStyle(damagesByMonth%>%
@@ -876,20 +878,33 @@ shinyApp(
     
     # C9
     #Function maps tornados by year. Excludes missing coordinates
-    
-    output$map_track = renderLeaflet({
+    map_track_state_year_reactive <- reactive({
       subset_data=states_data[State==input$state_select]
+      leafletProxy('map_t')
       if(input$units == 1){
-        map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+        m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
                              lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
                              map_markers = input$radio, units_set = units)
       }
       else{
-        map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+       m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
                              lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
                              map_markers = input$radio, units_set  = units_metric)
       }
+      m
     })
+    
+    output$map_track = renderLeaflet({
+      map_track_state_year_reactive()
+    })
+    
+    observeEvent(input$length_input, {
+      leafletProxy("map_track")
+    })
+  
+    
+    
+    
     
     #Function for B4
     output$map_top10 = renderLeaflet({
@@ -938,6 +953,8 @@ shinyApp(
       
       
     })
+   
+    
     
     output$Heat_Maps<-renderLeaflet(
       
