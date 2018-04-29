@@ -436,7 +436,7 @@ shinyApp(
                                                sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1, sep = ""),
                                                
                                                tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
-                                                        .irs-min {font-size: 20px;font-family: 'arial'; color: white;}")),
+                                                               .irs-min {font-size: 20px;font-family: 'arial'; color: white;}")),
                                                tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
                                                fixedRow(
                                                  column(12,
@@ -451,22 +451,22 @@ shinyApp(
                                                         
                                                         leafletOutput("map_track",height = "1200px"),
                                                         tags$style("input[type='radio']:checked+span{ 
-                                                            
-                                                            font-size: 24px;
-                                                            }
-                                                            input[type='radio']+span{ 
-                                                            
-                                                            font-size: 24px;
-                                                            }")
+                                                                   
+                                                                   font-size: 24px;
+                                                                   }
+                                                                   input[type='radio']+span{ 
+                                                                   
+                                                                   font-size: 24px;
+                                                                   }")
                                                         
                                                         
                                                         
-                                                 )
+                                                        )
                                                  
-                                               ),
+                                                 ),
                                                fixedRow("Put tables here")
                                                
-                                        ),
+                                               ),
                                         column(2,
                                                "Yearly Plots"
                                         ),
@@ -474,16 +474,19 @@ shinyApp(
                                                
                                                fluidRow("Heat Map"),
                                                
-                                               plotOutput("HeatMaps",width="1000px",height="700px"),
                                                
-                                               radioButtons("heat_map_option", h3("On Hover Details:"),
+                                               radioButtons("heat_map_option", h3("Heat-Map Type:"),
+                                                            choices = list("Based on Injuries " = 1, "Based on Fatalities" = 2),selected = 2,inline=T,width="1000px"),
+                                               plotOutput("HeatMaps",width="750px",height="700px"),
+                                               
+                                               radioButtons("hover_map_option", h3("On Hover Details:"),
                                                             choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
-                                               leafletOutput("Heat_Maps",width="1000px",height="700px"),
+                                               leafletOutput("Hover_Maps",width="1000px",height="700px"),
                                                fluidRow("10 destructive Tornadoes")
                                         )
-                               )
-                             )
-                           )),
+                                               )
+                                        )
+                               )),
                   tabPanel(h2("Analysis"),
                            sidebarPanel(width = 3, h2("Preferences"),
                                         
@@ -526,8 +529,8 @@ shinyApp(
                                                leafletOutput("map_top10")
                                      )
                            )
-
-                                  ),
+                           
+                  ),
                   tabPanel(h2("About"),
                            h3("You Spin Me Round is an application made by Pedro Borges, Megan Hauck, Shoaib Khan and Namaswi Chandarana.  It was completed for the spring 2018 course, Visualization and Visual Analytics (CS424) by professor Andy Johnson at the University of Illinois At Chicago ."),
                            h3("The application visualizes 62,000 tornadoes for the entire US from the year 1950 till 2016 but only about 2,500 tornadoes in IL.It is designed to show in depth data about Tornadoes across the United States, particularly those in Illinois.   There are many features which allow the user to navigate through data about the tornado themselves and the damage they cause."),
@@ -538,7 +541,7 @@ shinyApp(
                            
                            
                   )
-  ),
+                  ),
   server = function(input, output) {
     
     
@@ -835,45 +838,34 @@ shinyApp(
     })
     
     # C8
-    countyTornadoInfo = data %>% filter(state == "IL") %>% data.frame()
-    countyTornadoInfo = rbind(countyTornadoInfo %>% 
-                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips1st),
-                              countyTornadoInfo %>% 
-                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips2nd),
-                              countyTornadoInfo %>% 
-                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips3rd),
-                              countyTornadoInfo %>% 
-                                dplyr::select(-starts_with("fips"), fips,fipsCounty = fips4th)) %>% 
-      filter(fipsCounty != 0) %>%
-      mutate(fipsComplete1 = sprintf("%03d",fipsCounty),
-             fipsComplete = paste0(as.character(fips),fipsComplete1)) 
-    # merge(fipsCountyMap[,.(county = Name,fipsComplete = as.numeric(FIPS))], by = "fipsComplete", all.x = T) %>%
-    # filter(!is.na(county))
-    
-    # library(dplyr)
-    
-    tornadoesByCounty = countyTornadoInfo %>%
-      group_by(county = fipsComplete) %>%
-      summarize(tornadoCount = n()) %>%
-      arrange(-tornadoCount) %>% 
-      # mutate(fips = as.factor(fips)) %>%
-      data.table()
-    
-    output$c8table = renderDataTable(formatStyle(tornadoesByCounty%>%
-                                                   datatable(),
-                                                 color = "black",columns = T)
-    )
-    
-    #ggplot(tornadoCountByCounty[1:nrow(tornadoCountByCounty) %in% 1:10], aes(x = fips, y = tornadoCount)) + geom_bar(stat = "identity")
-    output$c8 = renderPlotly({
-      ggplot(tornadoesByCounty, aes(x = reorder(county, tornadoCount), y = tornadoCount)) + 
-        geom_bar(stat = "identity", fill = "steelblue", color = "black") +
-        theme_solarized(light = FALSE) + 
+  
+    output$c8table <-DT::renderDataTable(
+      DT::datatable({ 
         
-        theme(axis.text.x = element_text(angle = 90),text  = element_text(size = 5))
-      ggplotly()
-    }
+        tornadoesByCounty=read.csv( file = "Dataset/tornadospercounty.csv",header=TRUE,colClasses=c("NULL", NA, NA))[0:20,]
+        names(tornadoesByCounty)=c("County","#Tornados")
+        datatable({tornadoesByCounty})
+        
+        
+        tornadoesByCounty
+      } ,  options = list(searching = FALSE, pageLength = 15, lengthChange = FALSE) 
+      )
+      
     )
+    
+    output$c8 = renderPlotly({
+      selectedDamage = input$radioDamages
+      tornadoesByCounty=read.csv( file = "Dataset/tornadospercounty.csv",header=TRUE,colClasses=c("NULL", NA, NA))[0:20,]
+      names(tornadoesByCounty)=c("County","#Tornados")
+     
+       g=ggplot(tornadoesByCounty, aes(x = tornadoesByCounty[[1]], y = tornadoesByCounty[[2]])) + 
+        geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+        theme_solarized(light = FALSE) +
+        theme(axis.text.x=element_text(angle = 90, hjust = 0))+   
+        labs(x = "County",y = "Tornado Count")
+      
+      ggplotly(g)
+    })
     
     
     # C9
@@ -948,8 +940,8 @@ shinyApp(
           plot.background = element_rect(fill = "midnightblue")
         )
       
-      
-      grid.arrange(g1,g2, ncol=2)
+      if(input$heat_map_option==1){g=g1}else{g=g2}
+      g
       
       
     })
@@ -973,7 +965,7 @@ shinyApp(
                       color = "#666",
                       fillOpacity = 0.1,
                       bringToFront = TRUE),
-                    label = if(input$heat_map_option==1){l1}else{l2},
+                    label = if(input$hover_map_option==1){l1}else{l2},
                     labelOptions = labelOptions(
                       style = list("font-weight" = "normal", padding = "3px 8px"),
                       textsize = "15px",
@@ -982,4 +974,4 @@ shinyApp(
     
     
   }
-)
+                  )
