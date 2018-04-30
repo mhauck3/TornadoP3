@@ -919,12 +919,26 @@ shinyApp(
       m
     })
     
+   
+    
     output$map_track = renderLeaflet({
+      
       map_track_state_year_reactive()
     })
     
-    observeEvent(input$length_input, {
-      leafletProxy("map_track")
+    
+    
+    observe({
+      if (!(is.null(input$map_track_center))){
+        zoom <- input$input$map_track_zoom
+        center<-input$MAPID_center
+        latRng <- center$lat
+        lngRng <-center$lng
+      
+      
+      leafletProxy("map_track") %>%
+        
+        setView(latRng, lngRng, zoom = input$map_track_zoom)}
     })
     
     
@@ -1020,7 +1034,7 @@ shinyApp(
         sliderInput("width_input",label=h3("Length (In miles):"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('width')]))*1.6,width="100%")
     )
     
-   
+    
     
     
   }
