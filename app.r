@@ -456,9 +456,9 @@ shinyApp(
                                                tags$style(HTML(".js-irs-6 .irs-single, .js-irs-6 .irs-bar-edge, .js-irs-6 .irs-bar {background: red}")),
                                                fixedRow(
                                                  column(12,
-                                                        column(2,h4("Compare Illinois Data to")),
+                                                        column(1,h3("Compare Illinois Data to")),
                                                         column(4,selectInput("state_select", "", states,selected="Wisconsin")),
-                                                        column(6, radioButtons("radio", h4("View according to"),
+                                                        column(7, radioButtons("radio", h4("View according to"),
                                                                                choices = list("F-scale" = "fscale", "Injuries" = "injuries",
                                                                                               "Losses" = "loss", "Length" = "length", 
                                                                                               "Width" = "width", "Fatalities" = "fatalities"),
