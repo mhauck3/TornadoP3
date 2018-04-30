@@ -474,6 +474,14 @@ shinyApp(
                                                                    input[type='radio']+span{ 
                                                                    
                                                                    font-size: 24px;
+                                                                   }"),
+                                                        tags$style("input[type='checkbox']:checked+span{ 
+                                                                   
+                                                                   font-size: 24px;
+                                                                   }
+                                                                   input[type='checkbox']+span{ 
+                                                                   
+                                                                   font-size: 24px;
                                                                    }")
                                                         
                                                         
@@ -481,7 +489,7 @@ shinyApp(
                                                         )
                                                  
                                                  ),
-                                               fixedRow("Put tables here")
+                                               fixedRow("")
                                                
                                                ),
                                        
@@ -518,15 +526,15 @@ shinyApp(
                                         # uiOutput("SliderWidget"),
                                         sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")
                                                    
-                                        ), tags$a(href="#c4", "Click here!"),
-                                        tags$a(href="#c1", "Click here!"),
-                                        tags$a(href="#c2", "Click here!"),
-                                        tags$a(href="#c3", "Click here!"),
-                                        tags$a(href="#c5", "Click here!"),
-                                        tags$a(href="#c6", "Click here!"),
-                                        tags$a(href="#c7", "Click here!"),
-                                        tags$a(href="#c8", "Click here!"),
-                                        tags$a(href="#map10", "Click here!")),
+                                        ), tags$a(href="#c4", "c4"),
+                                        tags$a(href="#c1", "c1"),
+                                        tags$a(href="#c2", "c2"),
+                                        tags$a(href="#c3", "c3"),
+                                        tags$a(href="#c5", "c5"),
+                                        tags$a(href="#c6", "c6"),
+                                        tags$a(href="#c7", "c7"),
+                                        tags$a(href="#c8", "c8"),
+                                        tags$a(href="#map10", "10 destructive")),
                            
                            mainPanel("Analysis Plots",
                                      fluidPage(width= 11,
