@@ -17,7 +17,7 @@ library(gridExtra)
 library(maptools)
 library(raster)
 library(stringi)
-
+library(htmltools)
 library(ggthemes)
 library(plotly)
 #library(sqldf)
@@ -208,15 +208,15 @@ map_track_top10 = function(){
   unit = units[["fatalities"]]
   track_data = data[stateNumber2 == 1 & startLat > 0 & startLon < 0 & endLat > 0 & endLon <0 &
                       state %in% "IL",
-                    c("tornadoID", "startLon", "startLat","endLat","endLon", "fatalities", "injuries"), with = FALSE]
+                    c("tornadoID", "startLon", "startLat","endLat","endLon", "fatalities", "injuries","year"), with = FALSE]
   
   track_data = track_data[order(-fatalities, -injuries), head(.SD,10)]
   
   #Normalize data - In order to visualize
   track_data[, ("map_marker_normal") := (normalize(fatalities)+1)*5]
   
-  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "fatalities", "injuries", "map_marker_normal"), with = FALSE]
-  track_state_end = track_data[,c("tornadoID", "endLat","endLon", "fatalities", "injuries", "map_marker_normal"), with = FALSE]
+  track_state_start = track_data[,c("tornadoID", "startLon", "startLat", "fatalities", "injuries", "map_marker_normal","year"), with = FALSE]
+  track_state_end = track_data[,c("tornadoID", "endLat","endLon", "fatalities", "injuries", "map_marker_normal","year"), with = FALSE]
   setnames(track_state_start, c("startLon", "startLat"), c("lon","lat"))
   setnames(track_state_end, c("endLon", "endLat"), c("lon","lat"))
   track_state = rbind(track_state_start,track_state_end)
@@ -228,7 +228,7 @@ map_track_top10 = function(){
     domain = track_state$fatalities)
   
   hurricane_icon = makeIcon("hurricane-icon.png",32,20,iconAnchorX = 10, iconAnchorY = 5)
-  html_legend <- "<img src='hurricane-icon.png' style='width:10px;height:10px;'>Tornado End"
+  html_legend <- "<img src='hurricane-icon.png' style='width:10px;height:10px;'>Tornado End showing Years"
   
   
   m = leaflet() %>% 
@@ -243,6 +243,7 @@ map_track_top10 = function(){
     addLegend(title = paste("Fatalities", " (", unit, ")", sep = ""),"bottomright", pal = pal, values = track_state$fatalities,
               opacity = 1, bins = 5, labFormat = labelFormat(digits = 1)) %>%
     addControl(html = html_legend, position = "bottomleft")
+  
   for (i in unique(track_state$tornadoID)) {
     m <- m %>%
       addPolylines(data = track_state[tornadoID == i],
@@ -252,11 +253,17 @@ map_track_top10 = function(){
                    weight = ~(map_marker_normal),
                    highlightOptions = highlightOptions(color = "white", weight = 3,
                                                        bringToFront = TRUE),
-                   label = ~paste("Fatalities", ":",fatalities, " ", unit)) %>%
+                   label = ~paste("Fatalities:",fatalities),
+                   labelOptions = labelOptions(noHide = T, textsize = "22px")) %>%
+      
       addMarkers(data = track_state_end[tornadoID == i], 
                  icon = hurricane_icon,
                  lng = ~lon,
-                 lat = ~lat)
+                 lat = ~lat,
+                 label=~paste0("Year:",year),
+                 labelOptions = labelOptions( textsize = "18px",noHide = FALSE,riseOnHover=TRUE,riseOffset=10,direction = "auto")
+                 
+                 )
   }
   
   
@@ -427,7 +434,7 @@ shinyApp(
                                                                #"2"="2",
                                                                #"3"="3","4"="4","5"="5"),
                                                              inline=T,selected=list("-9", "0", "1", "2","3","4","5"),
-                                                             choiceNames=c(("<h2>Unknown</h2>"),("0"),("1"),("2"),("3"),("4"),("5")),
+                                                             choiceNames=c(("Unknown"),("0"),("1"),("2"),("3"),("4"),("5")),
                                                              choiceValues = c("-9","0","1","2","3","4","5")), #Ugly range (just to include -9). Need to change this
                                           
                                           tags$style(HTML(".irs-grid-text { font-size: 0px; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
@@ -978,6 +985,23 @@ shinyApp(
                       textsize = "15px",
                       direction = "auto"))
     )
+    
+    output$width_input<-renderUI(
+      if(input$units==2)
+      sliderInput("width_input",label=h3("Width (In Km):"), min=0, max=max(data[,c('width')])*1.6, value = c(0, max(data[,c('width')]))*1.6,width="100%")
+      else
+      {
+        sliderInput("width_input",label=h3("Width (In miles):"), min=0, max=max(data[,c('width')]), value = c(0, max(data[,c('width')]))*1.6,width="100%")
+      }
+    )
+    output$length_input<-renderUI(
+      if(input$units==2)
+      sliderInput("width_input",label=h3("Length(In kms):"), min=0, max=max(data[,c('length')])*1.6, value = c(0, max(data[,c('length')]))*1.6,width="100%")
+      else
+        sliderInput("width_input",label=h3("Length (In miles):"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('width')]))*1.6,width="100%")
+    )
+    
+   
     
     
   }
