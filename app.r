@@ -120,7 +120,13 @@ names(units) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 units_metric = c("", "people", "people", "km", "km", "million USD")
 names(units_metric) = c("fscale", "injuries", "fatalities", "length", "width", "loss")
 
-
+getmaxwidth = function(){
+  val<-max(data[,c('width')])
+  val
+}
+getmaxlength=function(){
+  val<-max(data[,c('length')])
+  val}
 
 map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
                                 irange = c(0,1800), fatrange = c(0,160), map_markers="fscale", units_set){
@@ -262,8 +268,8 @@ l1<- mapply(
   function(county, inj, fatal, losses) {
     htmltools::HTML(
       sprintf(
-        "<div style='font-size:12px;height:100px;width:190px;float:left'>
-        <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
+        "<div style='font-size:25px;height:125px;width:450px;float:left'>
+        <span style='font-size:28px;font-weight:bold'>%s</span><br/>-------------------------------------------------------<br/>
         
         
         <div style='width:95%%'>
@@ -309,8 +315,8 @@ l2 <- mapply(
   function(county, f0, f1, f2,f3,f4,f5, f9) {
     htmltools::HTML(
       sprintf(
-        "<div style='font-size:12px;height:220px;width:90px;float:left'>
-        <span style='font-size:18px;font-weight:bold'>%s</span><br/>-----------------------<br/>
+        "<div style='font-size:25px;height:220px;width:170px;float:left'>
+        <span style='font-size:28px;font-weight:bold'>%s</span><br/>-----------------------<br/>
         
         
         <div style='width:95%%'>
@@ -407,18 +413,23 @@ shinyApp(
                                           radioButtons("units", h3("Units:"),
                                                        choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
                                           h2("Filters"),
-                                          
+                                          #uiOutput("width_input"),
                                           sliderInput("width_input",label=h3("Width:"), min=0, max=max(data[,c('width')])*1.6, value = c(0, max(data[,c('width')]))*1.6,width="100%"),
+                                          #uiOutput("length_input"),
                                           sliderInput("length_input",label=h3("Length:"), min=0, max=max(data[,c('length')])*1.6, value = c(0, max(data[,c('length')]))*1.6,width="100%"),
                                           sliderInput("injuries_input",label=h3("Injuries (no of people):"), min=0, max=max(data[,c('injuries')]), value = c(0, max(data[,c('injuries')])),width="100%"),
                                           sliderInput("fatalities_input",label=h3("Fatalities (no of people):"), min=0, max=max(data[,c('fatalities')]), value = c(0, max(data[,c('fatalities')])),width="100%"),
                                           sliderInput("loss_input",label=h3("Loss(in million USD):"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
                                           checkboxGroupInput("fscale_input", h3("F-scale:"),
-                                                             c("Unknown" = "-9",
-                                                               "0" = "0",
-                                                               "1" = "1",
-                                                               "2"="2",
-                                                               "3"="3","4"="4","5"="5"),inline=T,selected=list("-9", "0", "1", "2","3","4","5")), #Ugly range (just to include -9). Need to change this
+                                                             #c("Unknown" = "-9",
+                                                              # "0" = "0",
+                                                               #"1" = "1",
+                                                               #"2"="2",
+                                                               #"3"="3","4"="4","5"="5"),
+                                                             inline=T,selected=list("-9", "0", "1", "2","3","4","5"),
+                                                             choiceNames=c(("<h2>Unknown</h2>"),("0"),("1"),("2"),("3"),("4"),("5")),
+                                                             choiceValues = c("-9","0","1","2","3","4","5")), #Ugly range (just to include -9). Need to change this
+                                          
                                           tags$style(HTML(".irs-grid-text { font-size: 0px; } .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: red}")),
                                           tags$style(HTML(".js-irs-1 .irs-single, .js-irs-1 .irs-bar-edge, .js-irs-1 .irs-bar {background: red }")),
                                           tags$style(HTML(".js-irs-2 .irs-single, .js-irs-2 .irs-bar-edge, .js-irs-2 .irs-bar {background: red}")),
