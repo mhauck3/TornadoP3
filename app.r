@@ -511,9 +511,9 @@ shinyApp(
                                         )
                                )),
                   tabPanel(h2("Analysis"),
-                          
-                             
-                           sidebarPanel(width = 1, 
+                           
+                           
+                           sidebarPanel(width = 1,
                                         
                                         h2("Preferences"),
                                         
@@ -526,21 +526,10 @@ shinyApp(
                                                      choices = list("Injuries" = "Injuries",
                                                                     "Losses" = "Losses",
                                                                     "Fatalities" = "Fatalities"),
-                                                     selected = "Injuries",inline=T),
-                                        # h2("Filters"),
+                                                     selected = "Injuries",inline=T))
+                                        # h2("Filters")
                                         # uiOutput("SliderWidget"),
-                                        # sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")
-                                                   
-                                        ), h2("Jump to:"),
-                                        # tags$a(href="#c4", h4("Number of tornadoes from Chicago")),
-                                        # tags$a(href="#c1", h4("Yearly totals")),
-                                        # tags$a(href="#c2", h4("Monthly Totals")),
-                                        # tags$a(href="#c3", h4("Hourly Totals")),
-                                        # tags$a(href="#c5", h4(" Injuries, fatalities, loss for each year")),
-                                        # tags$a(href="#c6", h4("Injuries, fatalities, loss per month")),
-                                        # tags$a(href="#c7", h4("Injuries, fatalities, loss per hour")),
-                                        # tags$a(href="#c8", "c8"),
-                                        # tags$a(href="#map10", h4("10 Destructive tornadoes"))),
+                                        ),
                            
                            mainPanel("Analysis Plots",
                                      fluidPage(width= 11,
@@ -550,33 +539,39 @@ shinyApp(
                                                       # height = "2000px",
                                                       id = "tabset2", 
                                                       
-                                               tabPanel("Yearly",
+                                               tabPanel("c1",
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c1table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1count")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1perc"))),
-                                               tabPanel("Monthly",
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c2table")),br(),
+                                               tabPanel("c2",
+                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c2table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2count")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2perc"))),
-                                               tabPanel("Hourly",
+                                               tabPanel("c3",
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c3table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3count")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3perc"))),
-                                               tabPanel("Distance",
-                                               sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")),
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c4table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4count")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4perc"))),
-                                               tabPanel("Yearly Loss",
+                                               
+                                               tabPanel("c4",
+                                              sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")),
+                                              conditionalPanel(condition = "input.showTables == true",dataTableOutput("c4table")),
+                                              br(),
+                                              conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4count")),br(),
+                                              conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4perc"))),
+                                               tabPanel("c5",
+                                                        
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c5table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c5"))),
-                                               tabPanel("Monthly Loss",      
+                                               tabPanel("c6",
+                                                        
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c6table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c6"))),
-                                               tabPanel("Hourly Loss",
+                                               tabPanel("c7",
+                                                        
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c7table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c7"))),
-                                               tabPanel("Counties",
+                                               tabPanel("c8",
+                                                        
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c8table")),br(),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c8"))),
                                                tabPanel("Top 10",
@@ -593,7 +588,12 @@ shinyApp(
                            h3("Data Links:"),
                            HTML("<h3>Data Source: <a href='http://www.spc.noaa.gov/wcm/index.html#data'>http://www.spc.noaa.gov/wcm/index.html#data</a>"),
                            HTML("<h3>Data Source Description: <a href='http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf'>http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf</a>")
+                  
                            
+                           
+                           
+                           
+                                    
                            
                   )
                   ),
@@ -603,10 +603,10 @@ shinyApp(
     tornadoesByMagnitudeByYear = data %>%
       filter(state == "IL") %>%
       group_by(year, magnitude = fscale) %>%
-      summarize(tornadoeCount = n()) %>%
+      summarize(tornadoCount = n()) %>%
       group_by(year) %>%
-      mutate(annualTornadoeCount = sum(tornadoeCount)) %>%
-      mutate(`Percentage Tornadoes` = tornadoeCount/annualTornadoeCount) %>%
+      mutate(annualTornadoCount = sum(tornadoCount)) %>%
+      mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
       data.table()
     
     output$c1table = renderDataTable(formatStyle(datatable(tornadoesByMagnitudeByYear %>%
@@ -620,7 +620,7 @@ shinyApp(
     # dim(data)[2]
     
     output$c1count = renderPlotly({    
-      ggplot(tornadoesByMagnitudeByYear, aes(x = factor(year), y = tornadoeCount, fill = magnitude)) +
+      ggplot(tornadoesByMagnitudeByYear, aes(x = factor(year), y = tornadoCount, fill = magnitude)) +
         geom_bar(stat = "identity", position = 'dodge') + theme_solarized(light = FALSE) + 
         theme(axis.text.x = element_text(angle = 90, hjust = 0))
       ggplotly()
@@ -941,13 +941,13 @@ shinyApp(
       m
     })
     
-   
-    
     output$map_track = renderLeaflet({
-      
       map_track_state_year_reactive()
     })
     
+    observeEvent(input$length_input, {
+      leafletProxy("map_track")
+    })
     
     #Function for B4
     output$map_top10 = renderLeaflet({
@@ -1038,7 +1038,7 @@ shinyApp(
         sliderInput("width_input",label=h3("Length (In miles):"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('width')]))*1.6,width="100%")
     )
     
-    
+   
     
     
   }
