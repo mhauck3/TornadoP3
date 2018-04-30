@@ -511,7 +511,11 @@ shinyApp(
                                         )
                                )),
                   tabPanel(h2("Analysis"),
-                           sidebarPanel(width = 1, h2("Preferences"),
+                          
+                             
+                           sidebarPanel(width = 1, 
+                                        
+                                        h2("Preferences"),
                                         
                                         radioButtons("hr", h3("Hour:"),
                                                      choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
@@ -526,17 +530,19 @@ shinyApp(
                                         # uiOutput("SliderWidget"),
                                         sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")
                                                    
-                                        ), tags$a(href="#c4", "c4"),
-                                        tags$a(href="#c1", "c1"),
-                                        tags$a(href="#c2", "c2"),
-                                        tags$a(href="#c3", "c3"),
-                                        tags$a(href="#c5", "c5"),
-                                        tags$a(href="#c6", "c6"),
-                                        tags$a(href="#c7", "c7"),
+                                        ), h2("Jump to:"),
+                                        tags$a(href="#c4", h4("Number of tornadoes from Chicago")),
+                                        tags$a(href="#c1", h4("Yearly totals")),
+                                        tags$a(href="#c2", h4("Monthly Totals")),
+                                        tags$a(href="#c3", h4("Hourly Totals")),
+                                        tags$a(href="#c5", h4(" Injuries, fatalities, loss for each year")),
+                                        tags$a(href="#c6", h4("Injuries, fatalities, loss per month")),
+                                        tags$a(href="#c7", h4("Injuries, fatalities, loss per hour")),
                                         tags$a(href="#c8", "c8"),
-                                        tags$a(href="#map10", "10 destructive")),
+                                        tags$a(href="#map10", h4("10 Destructive tornadoes"))),
                            
                            mainPanel("Analysis Plots",
+                                     
                                      fluidPage(width= 11,
                                                tags$div(class = "c4",
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c4table")),
@@ -561,9 +567,9 @@ shinyApp(
                                                tags$div(class = "c8",conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c8"))),
                                                tags$div(class = "map10",leafletOutput("map_top10",width="750px",height="700px"))
                                      )
-                           )
                            
-                  ),
+                           
+                  )),
                   tabPanel(h2("About"),
                            h3("You Spin Me Round is an application made by Pedro Borges, Megan Hauck, Shoaib Khan and Namaswi Chandarana.  It was completed for the spring 2018 course, Visualization and Visual Analytics (CS424) by professor Andy Johnson at the University of Illinois At Chicago ."),
                            h3("The application visualizes 62,000 tornadoes for the entire US from the year 1950 till 2016 but only about 2,500 tornadoes in IL.It is designed to show in depth data about Tornadoes across the United States, particularly those in Illinois.   There are many features which allow the user to navigate through data about the tornado themselves and the damage they cause."),
@@ -925,24 +931,6 @@ shinyApp(
       
       map_track_state_year_reactive()
     })
-    
-    
-    
-    observe({
-      if (!(is.null(input$map_track_center))){
-        zoom <- input$input$map_track_zoom
-        center<-input$MAPID_center
-        latRng <- center$lat
-        lngRng <-center$lng
-      
-      
-      leafletProxy("map_track") %>%
-        
-        setView(latRng, lngRng, zoom = input$map_track_zoom)}
-    })
-    
-    
-    
     
     
     #Function for B4
