@@ -161,17 +161,17 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
       palette = pal_colors, 
       domain = track_state$map_marker)
   }
-  hurricane_icon = makeIcon("hurricane-icon.png",32,20,iconAnchorX = 10, iconAnchorY = 5)
+  hurricane_icon = makeIcon("hurricane-icon.png",36,24,iconAnchorX = 10, iconAnchorY = 6)
   html_legend <- "<img src='hurricane-icon.png' style='width:10px;height:10px;'>Tornado End"
   
   
-  m = leaflet() %>% 
+  m = leaflet(options = leafletOptions(minZoom = 5, maxZoom = 18)) %>% 
     addProviderTiles(providers$CartoDB.Positron, group = "Light") %>%
     addProviderTiles(providers$Stamen.Toner, group = "Dark") %>%
     addProviderTiles(providers$OpenStreetMap.Mapnik, group = "City Classic") %>%
     addProviderTiles(providers$Stamen.Terrain, group = "Topological") %>%
     addProviderTiles(providers$Esri.WorldImagery, group = "Sattelite") %>%
-    setView(-87.987437, 41.913741, zoom = 5) %>%
+    setView(-87.987437, 41.913741, zoom = 6) %>%
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
                      options = layersControlOptions(collapsed = FALSE)) %>%
     addLegend(title = paste(map_markers, " (", unit, ")", sep = ""), "bottomright", pal = pal, values = track_state$map_marker,
@@ -184,7 +184,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                    lat = ~lat,
                    col = ~pal(map_marker),
                    weight = ~(map_marker_normal),
-                   highlightOptions = highlightOptions(color = "white", weight = 3,
+                   highlightOptions = highlightOptions(color = "white", weight = 5,
                                                        bringToFront = TRUE),
                    label = ~paste(map_markers, ":",map_marker, " ", unit)) %>%
       addMarkers(data = track_state_end[tornadoID == i], 
@@ -231,7 +231,7 @@ map_track_top10 = function(){
     addProviderTiles(providers$OpenStreetMap.Mapnik, group = "City Classic") %>%
     addProviderTiles(providers$Stamen.Terrain, group = "Topological") %>%
     addProviderTiles(providers$Esri.WorldImagery, group = "Sattelite") %>%
-    setView(-89, 40, zoom = 6) %>%
+    setView(-89, 40, zoom = 8) %>%
     addLayersControl(baseGroups = c("Light","Dark", "City Classic", "Topological", "Sattelite"),
                      options = layersControlOptions(collapsed = FALSE)) %>%
     addLegend(title = paste("Fatalities", " (", unit, ")", sep = ""),"bottomright", pal = pal, values = track_state$fatalities,
@@ -401,10 +401,8 @@ shinyApp(
                   
                   tabPanel(h2("Home"),
                            sidebarLayout(
-                             sidebarPanel(width = 3, h2("Preferences"),
-                                          
-                                          radioButtons("hr", h3("Hour:"),
-                                                       choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
+                             sidebarPanel(width = 1, h2("Preferences"),
+                                        
                                           
                                           radioButtons("units", h3("Units:"),
                                                        choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
@@ -432,7 +430,7 @@ shinyApp(
                                
                                fluidRow(width = 11,
                                         
-                                        column(8,
+                                        column(10,
                                                sliderInput("year_input",label=h4("Year:"), min=1950, max=2016, value = 1950,animate = TRUE,width="100%",step=1, sep = ""),
                                                
                                                tags$style(HTML(".js-irs-5 .irs-single, .js-irs-5 .irs-bar-edge, .js-irs-5 .irs-bar {background: red} .irs-max {font-size: 20px;font-family: 'arial'; color: white;}
@@ -467,9 +465,7 @@ shinyApp(
                                                fixedRow("Put tables here")
                                                
                                                ),
-                                        column(2,
-                                               "Yearly Plots"
-                                        ),
+                                       
                                         column(2,
                                                
                                                fluidRow("Heat Map"),
@@ -477,18 +473,18 @@ shinyApp(
                                                
                                                radioButtons("heat_map_option", h3("Heat-Map Type:"),
                                                             choices = list("Based on Injuries " = 1, "Based on Fatalities" = 2),selected = 2,inline=T,width="1000px"),
-                                               plotOutput("HeatMaps",width="750px",height="700px"),
+                                               plotOutput("HeatMaps",width="375px",height="700px"),
                                                
                                                radioButtons("hover_map_option", h3("On Hover Details:"),
                                                             choices = list("View amount of Injuries, Fatalities and Losses" = 1, "View frequency of Magnitudes" = 2),selected = 2,inline=T,width="1000px"),
-                                               leafletOutput("Hover_Maps",width="1000px",height="700px"),
-                                               fluidRow("10 destructive Tornadoes")
+                                               leafletOutput("Heat_Maps",width="1000px",height="700px")
+                                               
                                         )
                                                )
                                         )
                                )),
                   tabPanel(h2("Analysis"),
-                           sidebarPanel(width = 3, h2("Preferences"),
+                           sidebarPanel(width = 1, h2("Preferences"),
                                         
                                         radioButtons("hr", h3("Hour:"),
                                                      choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
@@ -526,7 +522,7 @@ shinyApp(
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c7")),
                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c8table")),
                                                conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c8")),
-                                               leafletOutput("map_top10")
+                                               leafletOutput("map_top10",width="750px",height="700px")
                                      )
                            )
                            
@@ -838,7 +834,7 @@ shinyApp(
     })
     
     # C8
-  
+    
     output$c8table <-DT::renderDataTable(
       DT::datatable({ 
         
@@ -857,8 +853,8 @@ shinyApp(
       selectedDamage = input$radioDamages
       tornadoesByCounty=read.csv( file = "Dataset/tornadospercounty.csv",header=TRUE,colClasses=c("NULL", NA, NA))[0:20,]
       names(tornadoesByCounty)=c("County","#Tornados")
-     
-       g=ggplot(tornadoesByCounty, aes(x = tornadoesByCounty[[1]], y = tornadoesByCounty[[2]])) + 
+      
+      g=ggplot(tornadoesByCounty, aes(x = tornadoesByCounty[[1]], y = tornadoesByCounty[[2]])) + 
         geom_bar(stat = "identity", fill = "steelblue", color = "black") +
         theme_solarized(light = FALSE) +
         theme(axis.text.x=element_text(angle = 90, hjust = 0))+   
@@ -875,13 +871,13 @@ shinyApp(
       leafletProxy('map_t')
       if(input$units == 1){
         m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
-                             lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                             map_markers = input$radio, units_set = units)
+                                lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
+                                map_markers = input$radio, units_set = units)
       }
       else{
-       m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
-                             lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                             map_markers = input$radio, units_set  = units_metric)
+        m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
+                                lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
+                                map_markers = input$radio, units_set  = units_metric)
       }
       m
     })
@@ -893,7 +889,7 @@ shinyApp(
     observeEvent(input$length_input, {
       leafletProxy("map_track")
     })
-  
+    
     
     
     
@@ -945,7 +941,7 @@ shinyApp(
       
       
     })
-   
+    
     
     
     output$Heat_Maps<-renderLeaflet(
