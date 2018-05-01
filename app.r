@@ -9,7 +9,7 @@ library(lubridate)
 library(jpeg)
 library(DT)
 library(grid)
-library(rsconnect)
+# library(rsconnect)
 library(scales)
 library(leaflet)
 library(geosphere)
@@ -130,8 +130,8 @@ getmaxlength=function(){
   val<-max(data[,c('length')])
   val}
 
-map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,9), wrange = c(0,5000), lrange = c(0,250), 
-                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale", units_set){
+map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,1,2,3,4,5), wrange = c(0,5000), lrange = c(0,250), 
+                                irange = c(0,1800), fatrange = c(0,160), map_markers="fscale", lossrange = c(0,3000), units_set){
   
   state_var = c(state_var1, state_var2)
   unit = units_set[[map_markers]]
@@ -143,9 +143,14 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                       width %between% wrange & 
                       length %between% lrange & 
                       injuries %between% irange &
-                      fatalities %between% fatrange,
+                      fatalities %between% fatrange &
+                      loss %between% lossrange,
                     c("tornadoID", "startLon", "startLat","endLat","endLon", map_markers), with = FALSE]
   setnames(track_data, map_markers, "map_marker")
+  
+  if (unit == "km"){
+    track_data[,map_marker := map_marker*1.6]
+  }
   
   #Normalize data - In order to visualize
   track_data[, ("map_marker_normal") := (normalize(as.numeric(map_marker))+1)*5]
@@ -195,7 +200,7 @@ map_track_state_year = function(year_var, state_var1, state_var2, frange = c(-9,
                    highlightOptions = highlightOptions(color = "white", weight = 5,
                                                        bringToFront = TRUE),
                    label = ~paste(map_markers, ":",map_marker, " ", unit),
-                   labelOptions = labelOptions(noHide = T, textsize = "22px",direction = 'auto')) %>%
+                   labelOptions = labelOptions(noHide = F, textsize = "22px",direction = 'auto')) %>%
       addMarkers(data = track_state_end[tornadoID == i], 
                  icon = hurricane_icon,
                  lng = ~lon,
@@ -257,7 +262,7 @@ map_track_top10 = function(){
                    highlightOptions = highlightOptions(color = "white", weight = 3,
                                                        bringToFront = TRUE),
                    label = ~paste("Fatalities:",fatalities),
-                   labelOptions = labelOptions(noHide = T, textsize = "22px")) %>%
+                   labelOptions = labelOptions(noHide = F, textsize = "22px")) %>%
       
       addMarkers(data = track_state_end[tornadoID == i], 
                  icon = hurricane_icon,
@@ -1107,12 +1112,12 @@ shinyApp(
       if(input$units == 1){
         m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
                                 lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                                map_markers = input$radio, units_set = units)
+                                map_markers = input$radio, lossrange = input$loss_input, units_set = units)
       }
       else{
         m<-map_track_state_year(input$year_input, state_var1 = "IL", state_var2 = subset_data[,c("Abbreviation")], frange = input$fscale_input, wrange = input$width_input, 
                                 lrange = input$length_input, irange = input$injuries_input, fatrange = input$fatalities_input,
-                                map_markers = input$radio, units_set  = units_metric)
+                                map_markers = input$radio, lossrange = input$loss_input, units_set  = units_metric)
       }
       m
     })
