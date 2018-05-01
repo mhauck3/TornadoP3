@@ -37,7 +37,8 @@ states_data = fread("Dataset/states.csv")
 # save.image(us,file = "Dataset/USdataGADM_lvl211.rds")
 us<-getData('GADM', country='USA', level=2)
 # us<-load('Dataset/USdataGADM_lvl211.RData')
-
+tornadoesByCounty=read.csv( file = "Dataset/tornadospercounty.csv",header=TRUE,colClasses=c("NULL", NA, NA))[0:20,]
+names(tornadoesByCounty)=c("County","#Tornados")
 # write.csv(us,"USdataGADM_lvl2.csv")
 ILall<-subset(us,NAME_1=="Illinois")   #One extra county in lake michigan
 t1=ILall@data
@@ -524,12 +525,12 @@ shinyApp(
                                         checkboxInput("showGraphs",label = h4("Graphs"), value = TRUE),
                                         checkboxInput("imperial",label = h4("Imperial"), value = TRUE),
                                         checkboxInput("metric",label = h4("Metric"), value = FALSE),
-                                       
-                                                         radioButtons("radioDamages", h4("View according to"),
-                                                                      choices = list("Injuries" = "Injuries",
-                                                                                     "Losses" = "Losses",
-                                                                                     "Fatalities" = "Fatalities"),
-                                                                      selected = "Injuries",inline=T),
+                                        
+                                        radioButtons("radioDamages", h4("View according to"),
+                                                     choices = list("Injuries" = "Injuries",
+                                                                    "Losses" = "Losses",
+                                                                    "Fatalities" = "Fatalities"),
+                                                     selected = "Injuries",inline=T),
                                         selectInput("state_analysis", "", st,selected="WI")
                                         # h2("Filters")
                                         # uiOutput("SliderWidget"),
@@ -606,33 +607,33 @@ shinyApp(
   server = function(input, output) {
     
     tornadoesByMagnitudeByYear =  reactive({
-          if (input$state_analysis!="All")
-          {
-          data %>%
-            filter(state == input$state_analysis) %>%
-            group_by(year, magnitude = fscale) %>%
-            summarize(tornadoCount = n()) %>%
-            group_by(year) %>%
-            mutate(annualTornadoCount = sum(tornadoCount)) %>%
-            mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
-            data.table()
-          }
-          
-          else
-          {
-            data %>%
-              group_by(year, magnitude = fscale) %>%
-              summarize(tornadoCount = n()) %>%
-              group_by(year) %>%
-              mutate(annualTornadoCount = sum(tornadoCount)) %>%
-              mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
-              data.table()
-          }
+      if (input$state_analysis!="All")
+      {
+        data %>%
+          filter(state == input$state_analysis) %>%
+          group_by(year, magnitude = fscale) %>%
+          summarize(tornadoCount = n()) %>%
+          group_by(year) %>%
+          mutate(annualTornadoCount = sum(tornadoCount)) %>%
+          mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
+          data.table()
+      }
+      
+      else
+      {
+        data %>%
+          group_by(year, magnitude = fscale) %>%
+          summarize(tornadoCount = n()) %>%
+          group_by(year) %>%
+          mutate(annualTornadoCount = sum(tornadoCount)) %>%
+          mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
+          data.table()
+      }
     })
     
     output$c1table = renderDataTable(formatStyle(datatable(tornadoesByMagnitudeByYear() %>%
                                                              mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`))),
-                                                 color = "black",columns = T)
+                                                 color = "black",columns = T,fontSize='22px')
     )
     
     # nrow(data)
@@ -654,12 +655,12 @@ shinyApp(
     }
     )
     # C2
-
     
-   tornadoesByMagnitudeByMonth =  reactive({
+    
+    tornadoesByMagnitudeByMonth =  reactive({
       if (input$state_analysis!="All")
       {
-          data %>%
+        data %>%
           filter(state == input$state_analysis) %>%
           group_by(month, magnitude = fscale) %>%
           summarize(tornadoCount = n()) %>%
@@ -671,7 +672,7 @@ shinyApp(
       
       else
       {
-          data %>%
+        data %>%
           group_by(month, magnitude = fscale) %>%
           summarize(tornadoCount = n()) %>%
           group_by(month) %>%
@@ -684,7 +685,7 @@ shinyApp(
     output$c2table = renderDataTable(formatStyle(tornadoesByMagnitudeByMonth() %>%
                                                    mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`)) %>%
                                                    datatable(),
-                                                 color = "black",columns = T)
+                                                 color = "black",columns = T,fontSize='22px')
     )
     
     output$c2count = renderPlotly( {   
@@ -703,37 +704,37 @@ shinyApp(
     }
     )
     
-
+    
     # C3 
     tornadoesByMagnitudeByHour =   reactive({
       
       if (input$state_analysis!="All")
       {
-                  if (input$hr==1)
-                  {
-                    data %>%
-                      filter(state == input$state_analysis) %>%
-                      mutate(hour = substr(time, 1,2)) %>%
-                      group_by(hour, magnitude = fscale) %>%
-                      summarize(tornadoCount = n()) %>%
-                      group_by(hour) %>%
-                      mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
-                      mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
-                      data.table()
-                  }
-                  
-                  else 
-                  {
-                    data %>%
-                      filter(state == input$state_analysis) %>%
-                      mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
-                      group_by(hour, magnitude = fscale) %>%
-                      summarize(tornadoCount = n()) %>%
-                      group_by(hour) %>%
-                      mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
-                      mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
-                      data.table()
-                  }
+        if (input$hr==1)
+        {
+          data %>%
+            filter(state == input$state_analysis) %>%
+            mutate(hour = substr(time, 1,2)) %>%
+            group_by(hour, magnitude = fscale) %>%
+            summarize(tornadoCount = n()) %>%
+            group_by(hour) %>%
+            mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+            mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
+            data.table()
+        }
+        
+        else 
+        {
+          data %>%
+            filter(state == input$state_analysis) %>%
+            mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+            group_by(hour, magnitude = fscale) %>%
+            summarize(tornadoCount = n()) %>%
+            group_by(hour) %>%
+            mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+            mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
+            data.table()
+        }
       }
       
       else
@@ -772,7 +773,7 @@ shinyApp(
     output$c3table = renderDataTable(formatStyle(tornadoesByMagnitudeByHour() %>%
                                                    mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`))%>%
                                                    datatable(),
-                                                 color = "black",columns = T)
+                                                 color = "black",columns = T,fontSize='22px')
     )
     output$c3count = renderPlotly({
       ggplot(tornadoesByMagnitudeByHour(), aes(x = factor(hour), y = tornadoCount, fill = magnitude)) + 
@@ -828,7 +829,7 @@ shinyApp(
                     mutate(totalTornadoCount = sum(tornadoCount)) %>%
                     mutate(`Percentage Tornadoes` = percent(tornadoCount/totalTornadoCount))%>%
                     datatable(),
-                  color = "black",columns = T)
+                  color = "black",columns = T,fontSize='22px')
       
     })
     
@@ -877,7 +878,7 @@ shinyApp(
     
     
     # C5
-
+    
     
     damagesByYear=  reactive({
       if (input$state_analysis!="All")
@@ -905,7 +906,7 @@ shinyApp(
     
     output$c5table = renderDataTable(formatStyle(damagesByYear()%>%
                                                    datatable(),
-                                                 color = "black",columns = T)
+                                                 color = "black",columns = T,fontSize='22px')
     )
     
     output$c5 = renderPlotly({
@@ -958,11 +959,11 @@ shinyApp(
     })
     
     
-
+    
     
     output$c6table = renderDataTable(formatStyle(damagesByMonth()%>%
                                                    datatable(),
-                                                 color = "black",columns = T)
+                                                 color = "black",columns = T,fontSize='22px')
     )
     
     output$c6= renderPlotly({
@@ -993,62 +994,62 @@ shinyApp(
       
       if (input$state_analysis!="All")
       {
-                if (input$hr==1)
-                {
-                  data %>%filter(state == input$state_analysis)%>% 
-                    mutate(hour = substr(time, 1,2)) %>%
-                    group_by(hour) %>%
-                    summarize(damagesInjuries = sum(injuries, na.rm = T),
-                              damagesFatalities = sum(fatalities,na.rm = T),
-                              damagesLoss = sum(loss, na.rm = T)) %>%
-                    data.table()
-                }
-                
-                else 
-                {
-                  
-                  data %>%filter(state == input$state_analysis) %>%
-                    mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
-                    group_by(hour) %>%
-                    summarize(damagesInjuries = sum(injuries, na.rm = T),
-                              damagesFatalities = sum(fatalities,na.rm = T),
-                              damagesLoss = sum(loss, na.rm = T)) %>%
-                    data.table()
-                }
+        if (input$hr==1)
+        {
+          data %>%filter(state == input$state_analysis)%>% 
+            mutate(hour = substr(time, 1,2)) %>%
+            group_by(hour) %>%
+            summarize(damagesInjuries = sum(injuries, na.rm = T),
+                      damagesFatalities = sum(fatalities,na.rm = T),
+                      damagesLoss = sum(loss, na.rm = T)) %>%
+            data.table()
+        }
+        
+        else 
+        {
+          
+          data %>%filter(state == input$state_analysis) %>%
+            mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+            group_by(hour) %>%
+            summarize(damagesInjuries = sum(injuries, na.rm = T),
+                      damagesFatalities = sum(fatalities,na.rm = T),
+                      damagesLoss = sum(loss, na.rm = T)) %>%
+            data.table()
+        }
       }
       
       
       else
       {
-            if (input$hr==1)
-            {
-              data %>%
-                mutate(hour = substr(time, 1,2)) %>%
-                group_by(hour) %>%
-                summarize(damagesInjuries = sum(injuries, na.rm = T),
-                          damagesFatalities = sum(fatalities,na.rm = T),
-                          damagesLoss = sum(loss, na.rm = T)) %>%
-                data.table()
-            }
-            
-            else 
-            {
-              
-              data %>%
-                mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
-                group_by(hour) %>%
-                summarize(damagesInjuries = sum(injuries, na.rm = T),
-                          damagesFatalities = sum(fatalities,na.rm = T),
-                          damagesLoss = sum(loss, na.rm = T)) %>%
-                data.table()
-            }
+        if (input$hr==1)
+        {
+          data %>%
+            mutate(hour = substr(time, 1,2)) %>%
+            group_by(hour) %>%
+            summarize(damagesInjuries = sum(injuries, na.rm = T),
+                      damagesFatalities = sum(fatalities,na.rm = T),
+                      damagesLoss = sum(loss, na.rm = T)) %>%
+            data.table()
+        }
+        
+        else 
+        {
+          
+          data %>%
+            mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+            group_by(hour) %>%
+            summarize(damagesInjuries = sum(injuries, na.rm = T),
+                      damagesFatalities = sum(fatalities,na.rm = T),
+                      damagesLoss = sum(loss, na.rm = T)) %>%
+            data.table()
+        }
       }
     })
     
     
     output$c7table = renderDataTable(formatStyle(damagesByHour()%>%
                                                    datatable(),
-                                                 color = "black",columns = T)
+                                                 color = "black",columns = T,fontSize='22px')
     )
     
     output$c7 = renderPlotly({
@@ -1077,19 +1078,10 @@ shinyApp(
     
     # C8
     
-    output$c8table <-DT::renderDataTable(
-      DT::datatable({ 
-        
-        tornadoesByCounty=read.csv( file = "Dataset/tornadospercounty.csv",header=TRUE,colClasses=c("NULL", NA, NA))[0:20,]
-        names(tornadoesByCounty)=c("County","#Tornados")
-        datatable({tornadoesByCounty})
-        
-        
-        tornadoesByCounty
-      } ,  options = list(searching = FALSE, pageLength = 15, lengthChange = FALSE) 
-      )
-      
-    )
+    output$c8table <- renderDataTable(formatStyle(tornadoesByCounty%>%
+                                                    datatable(),
+                                                  color = "black",columns = T,fontSize='22px'))
+                                      
     
     output$c8 = renderPlotly({
       selectedDamage = input$radioDamages
