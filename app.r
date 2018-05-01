@@ -26,6 +26,7 @@ library(plotly)
 
 # DATA PRE-PROCESSING
 #Read data
+st=c("All", "MO","IL","OH","AR","TX","MS","LA","TN","OK","FL","AL","SC","KS","IA","SD","NE","WY","NC","GA","ND","MN","WI","IN","PA","N","CT","CO","WV","MD","KY","CA","VA","NJ","MI","MA","NH","OR","NY","MT","AZ","UT","ME","VT","ID","WA","DE","HI","PR","AK","NV","RI","DC")
 data = fread("Dataset/allTornadoes.csv")
 fipsCountyMap = fread("Dataset/fipsCountyMap.csv")
 stateCoordinates = fread("Dataset/stateCoordinates.csv")
@@ -264,7 +265,7 @@ map_track_top10 = function(){
                  label=~paste0("Year:",year),
                  labelOptions = labelOptions( textsize = "18px",noHide = FALSE,riseOnHover=TRUE,riseOffset=10,direction = "auto")
                  
-                 )
+      )
   }
   
   
@@ -416,7 +417,7 @@ shinyApp(
                   tabPanel(h2("Home"),
                            sidebarLayout(
                              sidebarPanel(width = 1, h2("Preferences"),
-                                        
+                                          
                                           
                                           radioButtons("units", h3("Units:"),
                                                        choices = list("Imperial" = 1, "Metric" = 2),selected = 1),
@@ -430,10 +431,10 @@ shinyApp(
                                           sliderInput("loss_input",label=h3("Loss(in million USD):"), min=0, max=max(data[,c('loss')]), value = c(0, max(data[,c('loss')])),width="100%"),
                                           checkboxGroupInput("fscale_input", h3("F-scale:"),
                                                              #c("Unknown" = "-9",
-                                                              # "0" = "0",
-                                                               #"1" = "1",
-                                                               #"2"="2",
-                                                               #"3"="3","4"="4","5"="5"),
+                                                             # "0" = "0",
+                                                             #"1" = "1",
+                                                             #"2"="2",
+                                                             #"3"="3","4"="4","5"="5"),
                                                              inline=T,selected=list("-9", "0", "1", "2","3","4","5"),
                                                              choiceNames=c(("Unknown"),("0"),("1"),("2"),("3"),("4"),("5")),
                                                              choiceValues = c("-9","0","1","2","3","4","5")), #Ugly range (just to include -9). Need to change this
@@ -478,7 +479,7 @@ shinyApp(
                                                         tags$style("input[type='checkbox']:checked+span{ 
                                                                    
                                                                    font-size: 24px;
-                                                                   }
+                                                        }
                                                                    input[type='checkbox']+span{ 
                                                                    
                                                                    font-size: 24px;
@@ -492,7 +493,7 @@ shinyApp(
                                                fixedRow("")
                                                
                                                ),
-                                       
+                                        
                                         column(2,
                                                
                                                fluidRow("Heat Map"),
@@ -521,15 +522,18 @@ shinyApp(
                                                      choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
                                         checkboxInput("showTables",label = h4("Tables"), value = FALSE),
                                         checkboxInput("showGraphs",label = h4("Graphs"), value = TRUE),
-                                        conditionalPanel(condition = "input.tabset2 == 'c5'|input.tabset2 == 'c6'|input.tabset2 == 'c7'",
-                                        radioButtons("radioDamages", h4("View according to"),
-                                                     choices = list("Injuries" = "Injuries",
-                                                                    "Losses" = "Losses",
-                                                                    "Fatalities" = "Fatalities"),
-                                                     selected = "Injuries",inline=T))
+                                        checkboxInput("imperial",label = h4("Imperial"), value = TRUE),
+                                        checkboxInput("metric",label = h4("Metric"), value = FALSE),
+                                       
+                                                         radioButtons("radioDamages", h4("View according to"),
+                                                                      choices = list("Injuries" = "Injuries",
+                                                                                     "Losses" = "Losses",
+                                                                                     "Fatalities" = "Fatalities"),
+                                                                      selected = "Injuries",inline=T),
+                                        selectInput("state_analysis", "", st,selected="WI")
                                         # h2("Filters")
                                         # uiOutput("SliderWidget"),
-                                        ),
+                           ),
                            
                            mainPanel("Analysis Plots",
                                      fluidPage(width= 11,
@@ -539,44 +543,46 @@ shinyApp(
                                                       # height = "2000px",
                                                       id = "tabset2", 
                                                       
-                                               tabPanel("Yearly Sum",
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c1table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1count")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1perc"))),
-                                               tabPanel("Monthly Sum",
-                                                conditionalPanel(condition = "input.showTables == true",dataTableOutput("c2table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2count")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2perc"))),
-                                               tabPanel("Hourly Sum",
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c3table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3count")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3perc"))),
-                                               
-                                               tabPanel("Distance",
-                                              sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%")),
-                                              conditionalPanel(condition = "input.showTables == true",dataTableOutput("c4table")),
-                                              br(),
-                                              conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4count")),br(),
-                                              conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4perc"))),
-                                               tabPanel("Yearly Loss",
-                                                        
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c5table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c5"))),
-                                               tabPanel("Monthly Loss",
-                                                        
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c6table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c6"))),
-                                               tabPanel("Hourly Loss",
-                                                        
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c7table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c7"))),
-                                               tabPanel("Counties",
-                                                        
-                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c8table")),br(),
-                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c8"))),
-                                               tabPanel("Top 10",
-                                                        
-                                               leafletOutput("map_top10",width="750px",height="700px")))
+                                                      tabPanel("Yearly Sum",
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c1table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1count")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c1perc"))),
+                                                      tabPanel("Monthly Sum",
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c2table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2count")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c2perc"))),
+                                                      tabPanel("Hourly Sum",
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c3table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3count")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c3perc"))),
+                                                      
+                                                      tabPanel("Distance",
+                                                               conditionalPanel(condition = "input.imperial== true & input.metric== false" ,sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=3125, value = c(0,3125,width="100%"))),br(),
+                                                               conditionalPanel(condition = "input.imperial== false & input.metric== true" ,sliderInput("distanceFromChicago_input",label=h3("Distance from Chicago:"), min=0, max=5000, value = c(0,5000,width="100%"))),br(),
+                                                               
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c4table")),
+                                                               br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4count")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c4perc"))),
+                                                      tabPanel("Yearly Loss",
+                                                               
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c5table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c5"))),
+                                                      tabPanel("Monthly Loss",
+                                                               
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c6table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c6"))),
+                                                      tabPanel("Hourly Loss",
+                                                               
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c7table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c7"))),
+                                                      tabPanel("Counties",
+                                                               
+                                                               conditionalPanel(condition = "input.showTables == true",dataTableOutput("c8table")),br(),
+                                                               conditionalPanel(condition = "input.showGraphs == true",plotlyOutput(width ="100%","c8"))),
+                                                      tabPanel("Top 10",
+                                                               
+                                                               leafletOutput("map_top10",width="750px",height="700px")))
                                      )
                            )
                            
@@ -588,28 +594,43 @@ shinyApp(
                            h3("Data Links:"),
                            HTML("<h3>Data Source: <a href='http://www.spc.noaa.gov/wcm/index.html#data'>http://www.spc.noaa.gov/wcm/index.html#data</a>"),
                            HTML("<h3>Data Source Description: <a href='http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf'>http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf</a>")
-                  
                            
                            
                            
                            
-                                    
+                           
+                           
                            
                   )
                   ),
   server = function(input, output) {
     
+    tornadoesByMagnitudeByYear =  reactive({
+          if (input$state_analysis!="All")
+          {
+          data %>%
+            filter(state == input$state_analysis) %>%
+            group_by(year, magnitude = fscale) %>%
+            summarize(tornadoCount = n()) %>%
+            group_by(year) %>%
+            mutate(annualTornadoCount = sum(tornadoCount)) %>%
+            mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
+            data.table()
+          }
+          
+          else
+          {
+            data %>%
+              group_by(year, magnitude = fscale) %>%
+              summarize(tornadoCount = n()) %>%
+              group_by(year) %>%
+              mutate(annualTornadoCount = sum(tornadoCount)) %>%
+              mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
+              data.table()
+          }
+    })
     
-    tornadoesByMagnitudeByYear = data %>%
-      filter(state == "IL") %>%
-      group_by(year, magnitude = fscale) %>%
-      summarize(tornadoCount = n()) %>%
-      group_by(year) %>%
-      mutate(annualTornadoCount = sum(tornadoCount)) %>%
-      mutate(`Percentage Tornadoes` = tornadoCount/annualTornadoCount) %>%
-      data.table()
-    
-    output$c1table = renderDataTable(formatStyle(datatable(tornadoesByMagnitudeByYear %>%
+    output$c1table = renderDataTable(formatStyle(datatable(tornadoesByMagnitudeByYear() %>%
                                                              mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`))),
                                                  color = "black",columns = T)
     )
@@ -620,74 +641,148 @@ shinyApp(
     # dim(data)[2]
     
     output$c1count = renderPlotly({    
-      ggplot(tornadoesByMagnitudeByYear, aes(x = factor(year), y = tornadoCount, fill = magnitude)) +
+      ggplot(tornadoesByMagnitudeByYear(), aes(x = factor(year), y = tornadoCount, fill = magnitude)) +
         geom_bar(stat = "identity", position = 'dodge') + theme_solarized(light = FALSE) + 
         theme(axis.text.x = element_text(angle = 90, hjust = 0))
       ggplotly()
     })
     output$c1perc = renderPlotly({
-      ggplot(tornadoesByMagnitudeByYear, aes(x = factor(year), y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      ggplot(tornadoesByMagnitudeByYear(), aes(x = factor(year), y = `Percentage Tornadoes`,  fill = magnitude)) + 
         geom_bar(stat = "identity", position = 'stack', color = "black") +theme_solarized(light = FALSE) + 
         theme(axis.text.x = element_text(angle = 90, hjust = 0))+ scale_y_continuous(labels = percent) 
       ggplotly()
     }
     )
     # C2
-    tornadoesByMagnitudeByMonth = data %>%
-      filter(state == "IL") %>%
-      group_by(month, magnitude = fscale) %>%
-      summarize(tornadoCount = n()) %>%
-      group_by(month) %>%
-      mutate(monthlyTornadoCount = sum(tornadoCount)) %>%
-      mutate(`Percentage Tornadoes` = tornadoCount/monthlyTornadoCount) %>%
-      data.table()
+
     
-    output$c2table = renderDataTable(formatStyle(tornadoesByMagnitudeByMonth %>%
+   tornadoesByMagnitudeByMonth =  reactive({
+      if (input$state_analysis!="All")
+      {
+          data %>%
+          filter(state == input$state_analysis) %>%
+          group_by(month, magnitude = fscale) %>%
+          summarize(tornadoCount = n()) %>%
+          group_by(month) %>%
+          mutate(monthlyTornadoCount = sum(tornadoCount)) %>%
+          mutate(`Percentage Tornadoes` = tornadoCount/monthlyTornadoCount) %>%
+          data.table()
+      }
+      
+      else
+      {
+          data %>%
+          group_by(month, magnitude = fscale) %>%
+          summarize(tornadoCount = n()) %>%
+          group_by(month) %>%
+          mutate(monthlyTornadoCount = sum(tornadoCount)) %>%
+          mutate(`Percentage Tornadoes` = tornadoCount/monthlyTornadoCount) %>%
+          data.table()
+      }
+    })
+    
+    output$c2table = renderDataTable(formatStyle(tornadoesByMagnitudeByMonth() %>%
                                                    mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`)) %>%
                                                    datatable(),
                                                  color = "black",columns = T)
     )
     
     output$c2count = renderPlotly( {   
-      ggplot(tornadoesByMagnitudeByMonth, aes(x = factor(month), y = tornadoCount, fill = magnitude)) + 
+      ggplot(tornadoesByMagnitudeByMonth(), aes(x = factor(month), y = tornadoCount, fill = magnitude)) + 
         theme_solarized(light = FALSE) + 
         geom_bar(stat = "identity", position ='dodge', color = "black")
       ggplotly()
     }
     )
     output$c2perc = renderPlotly({
-      ggplot(tornadoesByMagnitudeByMonth, aes(x = factor(month), y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      ggplot(tornadoesByMagnitudeByMonth(), aes(x = factor(month), y = `Percentage Tornadoes`,  fill = magnitude)) + 
         geom_bar(stat = "identity", position = 'stack', color = "black") + 
         theme_solarized(light = FALSE) + 
         scale_y_continuous(labels = percent)
       ggplotly()
     }
     )
-    # C3 
-    tornadoesByMagnitudeByHour = data %>%
-      filter(state == "IL") %>%
-      mutate(hour = substr(time, 1,2)) %>%
-      group_by(hour, magnitude = fscale) %>%
-      summarize(tornadoCount = n()) %>%
-      group_by(hour) %>%
-      mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
-      mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
-      data.table()
     
-    output$c3table = renderDataTable(formatStyle(tornadoesByMagnitudeByHour %>%
+
+    # C3 
+    tornadoesByMagnitudeByHour =   reactive({
+      
+      if (input$state_analysis!="All")
+      {
+                  if (input$hr==1)
+                  {
+                    data %>%
+                      filter(state == input$state_analysis) %>%
+                      mutate(hour = substr(time, 1,2)) %>%
+                      group_by(hour, magnitude = fscale) %>%
+                      summarize(tornadoCount = n()) %>%
+                      group_by(hour) %>%
+                      mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+                      mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
+                      data.table()
+                  }
+                  
+                  else 
+                  {
+                    data %>%
+                      filter(state == input$state_analysis) %>%
+                      mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+                      group_by(hour, magnitude = fscale) %>%
+                      summarize(tornadoCount = n()) %>%
+                      group_by(hour) %>%
+                      mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+                      mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
+                      data.table()
+                  }
+      }
+      
+      else
+      {
+        if (input$hr==1)
+        {
+          data %>%
+            mutate(hour = substr(time, 1,2)) %>%
+            group_by(hour, magnitude = fscale) %>%
+            summarize(tornadoCount = n()) %>%
+            group_by(hour) %>%
+            mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+            mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
+            data.table()
+        }
+        
+        else 
+        {
+          data %>%
+            mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+            group_by(hour, magnitude = fscale) %>%
+            summarize(tornadoCount = n()) %>%
+            group_by(hour) %>%
+            mutate(hourlyTornadoCount = sum(tornadoCount)) %>%
+            mutate(`Percentage Tornadoes` = tornadoCount/hourlyTornadoCount) %>%
+            data.table()
+        }
+        
+        
+        
+        
+      }
+    })
+    
+    
+    output$c3table = renderDataTable(formatStyle(tornadoesByMagnitudeByHour() %>%
                                                    mutate(`Percentage Tornadoes` = percent(`Percentage Tornadoes`))%>%
                                                    datatable(),
                                                  color = "black",columns = T)
     )
     output$c3count = renderPlotly({
-      ggplot(tornadoesByMagnitudeByHour, aes(x = factor(hour), y = tornadoCount, fill = magnitude)) + 
+      ggplot(tornadoesByMagnitudeByHour(), aes(x = factor(hour), y = tornadoCount, fill = magnitude)) + 
         theme_solarized(light = FALSE) + 
         geom_bar(stat = "identity", position ='dodge',color = "black")
       ggplotly()
     }
     )
     output$c3perc = renderPlotly({
-      ggplot(tornadoesByMagnitudeByHour, aes(x = factor(hour), y = `Percentage Tornadoes`,  fill = magnitude)) + 
+      ggplot(tornadoesByMagnitudeByHour(), aes(x = factor(hour), y = `Percentage Tornadoes`,  fill = magnitude)) + 
         geom_bar(stat = "identity", position = 'stack', color = "black")+ 
         theme_solarized(light = FALSE) + 
         scale_y_continuous(labels = percent)
@@ -782,15 +877,33 @@ shinyApp(
     
     
     # C5
-    damagesByYear = data %>%
-      group_by(year) %>%
-      summarize(damagesInjuries = sum(injuries, na.rm = T),
-                damagesFatalities = sum(fatalities,na.rm = T),
-                damagesLoss = sum(loss, na.rm = T)) %>%
-      data.table()
+
+    
+    damagesByYear=  reactive({
+      if (input$state_analysis!="All")
+      {
+        data %>%
+          filter(state == input$state_analysis) %>%
+          group_by(year) %>%
+          summarize(damagesInjuries = sum(injuries, na.rm = T),
+                    damagesFatalities = sum(fatalities,na.rm = T),
+                    damagesLoss = sum(loss, na.rm = T)) %>%
+          data.table()
+      }
+      
+      else
+      {
+        data %>%
+          group_by(year) %>%
+          summarize(damagesInjuries = sum(injuries, na.rm = T),
+                    damagesFatalities = sum(fatalities,na.rm = T),
+                    damagesLoss = sum(loss, na.rm = T)) %>%
+          data.table()
+      }
+    })
     
     
-    output$c5table = renderDataTable(formatStyle(damagesByYear%>%
+    output$c5table = renderDataTable(formatStyle(damagesByYear()%>%
                                                    datatable(),
                                                  color = "black",columns = T)
     )
@@ -798,19 +911,19 @@ shinyApp(
     output$c5 = renderPlotly({
       selectedDamage = input$radioDamages
       if(selectedDamage == "Injuries"){
-        ggplot(damagesByYear, aes(x = year, y = damagesInjuries)) + 
+        ggplot(damagesByYear(), aes(x = year, y = damagesInjuries)) + 
           geom_bar(stat = "identity", fill = "steelblue", color = "black") +
           theme_solarized(light = FALSE) + 
           
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
       } else if (selectedDamage == "Fatalities"){
-        ggplot(damagesByYear, aes(x = year, y = damagesFatalities)) + 
+        ggplot(damagesByYear(), aes(x = year, y = damagesFatalities)) + 
           geom_bar(stat = "identity",fill = "seagreen3", color = "black") +
           theme_solarized(light = FALSE) + 
           
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
       } else if (selectedDamage == "Losses"){
-        ggplot(damagesByYear, aes(x = year, y = damagesLoss)) + 
+        ggplot(damagesByYear(), aes(x = year, y = damagesLoss)) + 
           geom_bar(stat = "identity", fill = "tomato3", color = "black") +
           theme_solarized(light = FALSE) + 
           
@@ -820,14 +933,34 @@ shinyApp(
     })
     
     # C6
-    damagesByMonth = data %>%
-      group_by(month) %>%
-      summarize(damagesInjuries = sum(injuries),
-                damagesFatalities = sum(fatalities),
-                damagesLoss = sum(loss)) %>%
-      data.table()
     
-    output$c6table = renderDataTable(formatStyle(damagesByMonth%>%
+    damagesByMonth =  reactive({
+      if (input$state_analysis!="All")
+      {
+        
+        data %>%filter(state == input$state_analysis) %>%
+          group_by(month) %>%
+          summarize(damagesInjuries = sum(injuries),
+                    damagesFatalities = sum(fatalities),
+                    damagesLoss = sum(loss)) %>%
+          data.table()
+      }
+      
+      else
+      {
+        data %>%
+          group_by(month) %>%
+          summarize(damagesInjuries = sum(injuries),
+                    damagesFatalities = sum(fatalities),
+                    damagesLoss = sum(loss)) %>%
+          data.table()
+      }
+    })
+    
+    
+
+    
+    output$c6table = renderDataTable(formatStyle(damagesByMonth()%>%
                                                    datatable(),
                                                  color = "black",columns = T)
     )
@@ -835,17 +968,17 @@ shinyApp(
     output$c6= renderPlotly({
       selectedDamage = input$radioDamages
       if(selectedDamage == "Injuries"){
-        ggplot(damagesByMonth, aes(x = month, y = damagesInjuries)) + 
+        ggplot(damagesByMonth(), aes(x = month, y = damagesInjuries)) + 
           geom_bar(stat = "identity", fill = "steelblue", color = "black") +
           theme_solarized(light = FALSE) + 
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
       } else if (selectedDamage == "Fatalities"){
-        ggplot(damagesByMonth, aes(x = month, y = damagesFatalities)) + 
+        ggplot(damagesByMonth(), aes(x = month, y = damagesFatalities)) + 
           geom_bar(stat = "identity",fill = "seagreen3", color = "black") +
           theme_solarized(light = FALSE) + 
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
       } else if (selectedDamage == "Losses"){
-        ggplot(damagesByMonth, aes(x = month, y = damagesLoss)) + 
+        ggplot(damagesByMonth(), aes(x = month, y = damagesLoss)) + 
           geom_bar(stat = "identity", fill = "tomato3", color = "black") +
           theme_solarized(light = FALSE) + 
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
@@ -855,15 +988,65 @@ shinyApp(
     
     # C7
     
-    damagesByHour = data %>%
-      mutate(hour = substr(time, 1,2)) %>%
-      group_by(hour) %>%
-      summarize(damagesInjuries = sum(injuries, na.rm = T),
-                damagesFatalities = sum(fatalities,na.rm = T),
-                damagesLoss = sum(loss, na.rm = T)) %>%
-      data.table()
     
-    output$c7table = renderDataTable(formatStyle(damagesByHour%>%
+    damagesByHour =   reactive({
+      
+      if (input$state_analysis!="All")
+      {
+                if (input$hr==1)
+                {
+                  data %>%filter(state == input$state_analysis)%>% 
+                    mutate(hour = substr(time, 1,2)) %>%
+                    group_by(hour) %>%
+                    summarize(damagesInjuries = sum(injuries, na.rm = T),
+                              damagesFatalities = sum(fatalities,na.rm = T),
+                              damagesLoss = sum(loss, na.rm = T)) %>%
+                    data.table()
+                }
+                
+                else 
+                {
+                  
+                  data %>%filter(state == input$state_analysis) %>%
+                    mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+                    group_by(hour) %>%
+                    summarize(damagesInjuries = sum(injuries, na.rm = T),
+                              damagesFatalities = sum(fatalities,na.rm = T),
+                              damagesLoss = sum(loss, na.rm = T)) %>%
+                    data.table()
+                }
+      }
+      
+      
+      else
+      {
+            if (input$hr==1)
+            {
+              data %>%
+                mutate(hour = substr(time, 1,2)) %>%
+                group_by(hour) %>%
+                summarize(damagesInjuries = sum(injuries, na.rm = T),
+                          damagesFatalities = sum(fatalities,na.rm = T),
+                          damagesLoss = sum(loss, na.rm = T)) %>%
+                data.table()
+            }
+            
+            else 
+            {
+              
+              data %>%
+                mutate(hour = paste(substr(format(strptime(time, format='%H:%M:%S'), '%r'),1,2) , substr(format(strptime(time, format='%H:%M:%S'), '%r'),10,12))  ) %>%    ######CHANGE
+                group_by(hour) %>%
+                summarize(damagesInjuries = sum(injuries, na.rm = T),
+                          damagesFatalities = sum(fatalities,na.rm = T),
+                          damagesLoss = sum(loss, na.rm = T)) %>%
+                data.table()
+            }
+      }
+    })
+    
+    
+    output$c7table = renderDataTable(formatStyle(damagesByHour()%>%
                                                    datatable(),
                                                  color = "black",columns = T)
     )
@@ -871,19 +1054,19 @@ shinyApp(
     output$c7 = renderPlotly({
       selectedDamage = input$radioDamages
       if(selectedDamage == "Injuries"){
-        ggplot(damagesByHour, aes(x = hour, y = damagesInjuries)) + 
+        ggplot(damagesByHour(), aes(x = hour, y = damagesInjuries)) + 
           geom_bar(stat = "identity", fill = "steelblue", color = "black") +
           theme_solarized(light = FALSE) + 
           
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
       } else if (selectedDamage == "Fatalities"){
-        ggplot(damagesByHour, aes(x = hour, y = damagesFatalities)) + 
+        ggplot(damagesByHour(), aes(x = hour, y = damagesFatalities)) + 
           geom_bar(stat = "identity",fill = "seagreen3", color = "black") +
           theme_solarized(light = FALSE) + 
           
           theme(axis.text.x = element_text(angle = 90, hjust = 0))
       } else if (selectedDamage == "Losses"){
-        ggplot(damagesByHour, aes(x = hour, y = damagesLoss)) + 
+        ggplot(damagesByHour(), aes(x = hour, y = damagesLoss)) + 
           geom_bar(stat = "identity", fill = "tomato3", color = "black") +
           theme_solarized(light = FALSE) + 
           
@@ -1025,7 +1208,7 @@ shinyApp(
     
     output$width_input<-renderUI(
       if(input$units==2)
-      sliderInput("width_input",label=h3("Width (In Km):"), min=0, max=max(data[,c('width')])*1.6, value = c(0, max(data[,c('width')]))*1.6,width="100%")
+        sliderInput("width_input",label=h3("Width (In Km):"), min=0, max=max(data[,c('width')])*1.6, value = c(0, max(data[,c('width')]))*1.6,width="100%")
       else
       {
         sliderInput("width_input",label=h3("Width (In miles):"), min=0, max=max(data[,c('width')]), value = c(0, max(data[,c('width')]))*1.6,width="100%")
@@ -1033,13 +1216,13 @@ shinyApp(
     )
     output$length_input<-renderUI(
       if(input$units==2)
-      sliderInput("width_input",label=h3("Length(In kms):"), min=0, max=max(data[,c('length')])*1.6, value = c(0, max(data[,c('length')]))*1.6,width="100%")
+        sliderInput("width_input",label=h3("Length(In kms):"), min=0, max=max(data[,c('length')])*1.6, value = c(0, max(data[,c('length')]))*1.6,width="100%")
       else
         sliderInput("width_input",label=h3("Length (In miles):"), min=0, max=max(data[,c('length')]), value = c(0, max(data[,c('width')]))*1.6,width="100%")
     )
     
-   
+    
     
     
   }
-                  )
+                           )
