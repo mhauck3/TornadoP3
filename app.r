@@ -521,8 +521,9 @@ shinyApp(
                                         
                                         radioButtons("hr", h3("Hour:"),
                                                      choices = list("24Hr" = 1, "12Hr" = 2),selected = 1),
-                                        checkboxInput("showTables",label = h4("Tables"), value = FALSE),
-                                        checkboxInput("showGraphs",label = h4("Graphs"), value = TRUE),
+                                        checkboxInput("showTables",label = h4("Show Tables"), value = FALSE),
+                                        checkboxInput("showGraphs",label = h4("Show Graphs"), value = TRUE),
+                                        h3("Select Unit:"),
                                         checkboxInput("imperial",label = h4("Imperial"), value = TRUE),
                                         checkboxInput("metric",label = h4("Metric"), value = FALSE),
                                         
@@ -530,7 +531,7 @@ shinyApp(
                                                      choices = list("Injuries" = "Injuries",
                                                                     "Losses" = "Losses",
                                                                     "Fatalities" = "Fatalities"),
-                                                     selected = "Injuries",inline=T),
+                                                     selected = "Injuries"),
                                         selectInput("state_analysis", "", st,selected="WI")
                                         # h2("Filters")
                                         # uiOutput("SliderWidget"),
